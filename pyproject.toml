@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "parexa-interface"
+version = "0.1.0"
+description = "Parexa AI chat interface with RAG and document upload support."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "flask",
+    "asgiref",
+    "google-genai",
+    "python-dotenv",
+    "llama-index",
+    "llama-index-vector-stores-qdrant",
+    "qdrant-client",
+    "openai",
+    "llama-index-retrievers-bm25",
+    "llama-index-embeddings-google-genai",
+    "llama-index-llms-google-genai",
+    "llama-index-llms-cerebras",
+    "pymupdf",
+    "Pillow",
+    "sentence-transformers",
+    "rank_bm25",
+    "easyocr",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src/code"}
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src/code"]

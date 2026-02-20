@@ -1,0 +1,61 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# test and debug artifacts
+debug/
+test/
+
+# Local docs / notes
+documentation.txt
+
+# Logs
+*.log
+
+# Python cache / bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Python virtual environments
+venv/
+.venv/
+.python-version
+
+# Python tooling cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.tox/
+.nox/
+.pyre/
+
+# Coverage / test reports
+.coverage
+.coverage.*
+htmlcov/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# IDE / editor
+.idea/
+.vscode/
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Local app data / runtime
+*.db
+*.sqlite3
+qdrant_db/
+runtime/
+storage/db/
+storage/test/
+docker/qdrant/data/

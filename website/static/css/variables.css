@@ -1,0 +1,76 @@
+:root {
+    color-scheme: light dark;
+    --bg: #050816;
+    --bg-overlay: radial-gradient(40% 35% at 20% 20%, rgba(78, 97, 222, 0.35), transparent 70%),
+        radial-gradient(30% 30% at 80% 10%, rgba(123, 72, 230, 0.32), transparent 65%),
+        radial-gradient(55% 50% at 50% 100%, rgba(15, 18, 42, 0.85), rgba(7, 9, 22, 0.95));
+    --sidebar-bg: rgba(10, 13, 26, 0.82);
+    --sidebar-border: rgba(148, 163, 184, 0.14);
+    --sidebar-text: #e2e8f0;
+    --sidebar-muted: rgba(148, 163, 184, 0.62);
+    --sidebar-highlight: rgba(94, 106, 211, 0.35);
+    --chat-surface: rgba(248, 250, 255, 0.92);
+    --chat-border: rgba(148, 163, 184, 0.28);
+    --chat-text: #0f172a;
+    --chat-muted: #64748b;
+    --bubble-user: linear-gradient(135deg, #6366f1, #8b5cf6);
+    --bubble-user-text: #f8fafc;
+    --bubble-model: #f1f5f9;
+    --bubble-border: rgba(99, 102, 241, 0.12);
+    --brand: #6366f1;
+    --brand-strong: #4338ca;
+    --radius-xl: 28px;
+    --radius-lg: 20px;
+    --radius-md: 16px;
+    --radius-pill: 999px;
+    --shadow-soft: 0 24px 60px rgba(15, 23, 42, 0.18);
+    --shadow-bubble: 0 10px 30px rgba(15, 23, 42, 0.14);
+    --shadow-glow: 0 0 0 1px rgba(99, 102, 241, 0.08), 0 16px 40px rgba(79, 70, 229, 0.22);
+    font-family: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+}
+
+:root[data-theme="light"] {
+    color-scheme: light;
+    --bg: #eef2ff;
+    --bg-overlay: radial-gradient(40% 35% at 20% 20%, rgba(129, 140, 248, 0.2), transparent 70%),
+        radial-gradient(30% 30% at 80% 10%, rgba(196, 181, 253, 0.22), transparent 65%),
+        radial-gradient(55% 50% at 50% 100%, rgba(241, 245, 249, 0.95), rgba(226, 232, 240, 0.95));
+    --sidebar-bg: rgba(255, 255, 255, 0.9);
+    --sidebar-border: rgba(148, 163, 184, 0.22);
+    --sidebar-text: #0f172a;
+    --sidebar-muted: #64748b;
+    --sidebar-highlight: rgba(99, 102, 241, 0.18);
+    --chat-surface: rgba(255, 255, 255, 0.95);
+    --chat-border: rgba(148, 163, 184, 0.2);
+    --chat-text: #0f172a;
+    --chat-muted: #64748b;
+    --bubble-user: linear-gradient(135deg, #6366f1, #8b5cf6);
+    --bubble-user-text: #f8fafc;
+    --bubble-model: #f1f5f9;
+    --bubble-border: rgba(99, 102, 241, 0.12);
+    --brand: #6366f1;
+    --brand-strong: #4338ca;
+}
+
+:root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #050816;
+    --bg-overlay: radial-gradient(40% 35% at 20% 20%, rgba(78, 97, 222, 0.35), transparent 70%),
+        radial-gradient(30% 30% at 80% 10%, rgba(123, 72, 230, 0.32), transparent 65%),
+        radial-gradient(55% 50% at 50% 100%, rgba(15, 18, 42, 0.85), rgba(7, 9, 22, 0.95));
+    --sidebar-bg: rgba(10, 13, 26, 0.9);
+    --sidebar-border: rgba(148, 163, 184, 0.14);
+    --sidebar-text: #e2e8f0;
+    --sidebar-muted: rgba(148, 163, 184, 0.62);
+    --sidebar-highlight: rgba(94, 106, 211, 0.35);
+    --chat-surface: rgba(15, 23, 42, 0.92);
+    --chat-border: rgba(148, 163, 184, 0.22);
+    --chat-text: #e2e8f0;
+    --chat-muted: #94a3b8;
+    --bubble-user: linear-gradient(135deg, #6366f1, #8b5cf6);
+    --bubble-user-text: #f8fafc;
+    --bubble-model: #111827;
+    --bubble-border: rgba(148, 163, 184, 0.25);
+    --brand: #6366f1;
+    --brand-strong: #4338ca;
+}

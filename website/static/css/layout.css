@@ -1,0 +1,24 @@
+.app-background {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    pointer-events: none;
+    background: var(--bg-overlay);
+}
+
+.app-shell {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    height: 100vh;
+    display: flex;
+    gap: 28px;
+    padding: 32px 36px;
+    backdrop-filter: blur(6px);
+    overflow: hidden;
+    transition: gap 0.2s ease;
+}
+
+.app-shell.sidebar-collapsed {
+    gap: 0;
+}
