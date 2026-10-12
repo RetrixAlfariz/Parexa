@@ -167,7 +167,11 @@ def _build_settings() -> Settings:
         qdrant_url=qdrant_url,
         qdrant_api_key=qdrant_api_key,
         api_key=_require_env("CEREBRAS_API_KEY"),
-        google_api_key=_require_env("GOOGLE_API_KEY"),
+        google_api_key=(
+            _require_env("GOOGLE_API_KEY")
+            if embedding_provider != "lmstudio"
+            else os.getenv("GOOGLE_API_KEY", "")
+        ),
         chat_model=default_model,
         browsing_model=browsing_model,
         embedding_provider=embedding_provider,
