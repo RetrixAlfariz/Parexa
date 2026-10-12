@@ -19,6 +19,8 @@ WEBSITE = ROOT / "website"
 
 
 class Handler(SimpleHTTPRequestHandler):
+    last_chat_payload: dict = {}
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(WEBSITE), **kwargs)
 
@@ -53,7 +55,19 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_json(200, {"conversations": []})
             return
         if path == "/api/health/embedding":
-            self.send_json(200, {"provider": "google", "enabled": False})
+            self.send_json(200, {"provider": "lmstudio", "enabled": True, "healthy": True})
+            return
+        if path == "/api/models":
+            self.send_json(200, {
+                "providers": [{
+                    "id": "lmstudio", "label": "LM Studio", "local": True,
+                    "online": True, "models": [{"id": "fixture-local-chat", "label": "fixture-local-chat"}],
+                    "configured_model": "fixture-local-chat", "error": ""
+                }],
+                "default": {"provider": "lmstudio", "model": "fixture-local-chat"},
+                "embedding": {"provider": "lmstudio", "model": "fixture-embedding"},
+                "cloud_selection_enabled": False
+            })
             return
         if path.startswith("/api/upload/progress/"):
             self.send_json(200, {"state": "completed", "percent": 100})
@@ -63,7 +77,7 @@ class Handler(SimpleHTTPRequestHandler):
     def do_POST(self):
         path = urlparse(self.path).path
         count = int(self.headers.get("Content-Length", 0))
-        self.rfile.read(count)
+        data = self.rfile.read(count)
         if path == "/api/upload":
             self.send_json(200, {
                 "message": "File processed",
@@ -73,11 +87,12 @@ class Handler(SimpleHTTPRequestHandler):
             })
             return
         if path == "/api/chat":
+            Handler.last_chat_payload = json.loads(data)
             self.send_json(200, {
                 "reply": "The provided document discusses several practical applications.",
                 "conversation_id": "fixture-conversation-1",
                 "sources": [{"file": "sample.txt", "page": "1", "type": "text"}],
-                "meta": {"execution": {"mode": "rag", "provider": "mock", "model": "smoke-test"}}
+                "meta": {"execution": {"mode": "rag", "provider": "lmstudio", "model": "fixture-local-chat", "local": True}}
             })
             return
         self.send_json(404, {"error": "Not found"})
@@ -102,6 +117,11 @@ def main():
             assert page.locator("#ob-inspector").is_visible()
             assert page.locator(".new-chat-btn").is_visible()
             assert page.locator("#user-input").is_visible()
+            page.wait_for_function(
+                "window.parexaChatModelSelection?.model === 'fixture-local-chat'",
+                timeout=15000,
+            )
+            assert "fixture-local-chat" in page.locator("#ob-composer-model").inner_text()
             assert "Upgrade to Pro" not in page.locator("body").inner_text()
             page.screenshot(path=str(artifacts / "parexa-observatory-desktop.png"), full_page=True)
 
@@ -112,6 +132,10 @@ def main():
             page.locator("#ob-home").wait_for(state="visible")
             page.locator('[data-ob-tab="notes"]').click()
             assert page.locator("#ob-scratchpad").input_value() == "Browser-local note"
+            page.wait_for_function(
+                "window.parexaChatModelSelection?.model === 'fixture-local-chat'",
+                timeout=15000,
+            )
 
             page.locator('[data-ob-tab="sources"]').click()
             page.locator("#file-upload").set_input_files({
@@ -124,7 +148,9 @@ def main():
             page.locator(".send-btn").click()
             page.locator(".source-chip").wait_for(timeout=15000)
             assert page.locator(".ob-evidence-item").count() == 1
-            assert "mock / smoke-test" in page.locator("#ob-provider").inner_text().lower()
+            assert Handler.last_chat_payload.get("model_provider") == "lmstudio"
+            assert Handler.last_chat_payload.get("model") == "fixture-local-chat"
+            assert "lmstudio / fixture-local-chat" in page.locator("#ob-provider").inner_text().lower()
             page.screenshot(path=str(artifacts / "parexa-observatory-chat.png"), full_page=True)
 
             page.locator(".new-chat-btn").click()

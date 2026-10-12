@@ -2778,6 +2778,9 @@ form.addEventListener("submit", async (event) => {
         conversation_id: conversationId,
         files: currentFiles,
         file_ids: fileIdsForRequest,
+        // Validated against the backend's /api/models catalog before inference.
+        model_provider: window.parexaChatModelSelection?.provider || undefined,
+        model: window.parexaChatModelSelection?.model || undefined,
         use_browsing: browsingForThisMessage,
         assistant_instructions: combinedInstructions,
         agent: activeAgent || "default",

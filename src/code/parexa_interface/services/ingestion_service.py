@@ -13,8 +13,6 @@ from ..config import settings
 from ..storage.qdrant_db import (
     get_client,
     get_vector_store,
-    recreate_collection,
-    reset_collection,
 )
 from .executor_pool import run_cpu_bound
 
@@ -36,6 +34,10 @@ ProgressCallback = Callable[[Dict[str, Any]], None]
 class EmbeddingServiceUnavailableError(RuntimeError):
     """Raised when LM Studio embedding service is not reachable/ready."""
 
+
+class EmbeddingDimensionMismatchError(RuntimeError):
+    """An existing index is incompatible; never delete indexed data implicitly."""
+
 _reader: Any = None
 _reader_lock = threading.Lock()
 _google_embedding_model_name: str | None = None
@@ -44,7 +46,6 @@ _embedding_warmup_done = False
 _embedding_warmup_lock = threading.Lock()
 _embedding_dimension: int | None = None
 _embedding_dimension_lock = threading.Lock()
-_collection_reset_lock = threading.Lock()
 _embedding_health_lock = threading.Lock()
 _embedding_health_start_lock = threading.Lock()
 _embedding_health_stop_event = threading.Event()
@@ -286,6 +287,11 @@ def get_embedding_model() -> "BaseEmbedding":
     if provider == "lmstudio":
         return _build_lmstudio_embedding()
 
+    if not settings.google_api_key:
+        raise EmbeddingServiceUnavailableError(
+            "Google embeddings require GOOGLE_API_KEY. "
+            "Use EMBEDDING_PROVIDER=lmstudio for a local embedding model."
+        )
     from llama_index.embeddings.google_genai import GoogleGenAIEmbedding
 
     return GoogleGenAIEmbedding(
@@ -499,36 +505,20 @@ def _get_collection_vector_size(collection_name: str) -> Optional[int]:
     return None
 
 
-def _reset_collection_safely(
-    collection_name: str, *, reason: str, expected_dimension: Optional[int] = None
-) -> None:
-    with _collection_reset_lock:
-        if isinstance(expected_dimension, int) and expected_dimension > 0:
-            logger.warning(
-                "Hard resetting collection '%s' with vector_size=%s due to %s.",
-                collection_name,
-                expected_dimension,
-                reason,
-            )
-            recreate_collection(collection_name, expected_dimension)
-            return
-        logger.warning("Resetting collection '%s' due to %s.", collection_name, reason)
-        reset_collection(collection_name)
-
-
 def _ensure_collection_dimension(
     collection_name: str, embed_model: "BaseEmbedding"
 ) -> None:
+    """Reject incompatible models without modifying any existing collection."""
     expected = _resolve_embedding_dimension(embed_model)
     if expected is None:
         return
     actual = _get_collection_vector_size(collection_name)
     if actual is None or actual == expected:
         return
-    _reset_collection_safely(
-        collection_name,
-        reason=f"embedding dimension mismatch ({actual} != {expected})",
-        expected_dimension=expected,
+    raise EmbeddingDimensionMismatchError(
+        f"Collection '{collection_name}' uses {actual}-dimensional embeddings, "
+        f"but the selected model produces {expected}. Existing data is preserved. "
+        "Restore the previous embedding model or run an explicitly approved reindex."
     )
 
 
@@ -820,37 +810,14 @@ def ingest_documents(
     except Exception as exc:
         if _is_dimension_mismatch_error(exc):
             expected = _resolve_embedding_dimension(embed_model)
-            logger.warning(
-                "Embedding dimension mismatch detected for '%s'. Recreating collection.",
-                collection_name,
-            )
-            try:
-                _reset_collection_safely(
-                    collection_name,
-                    reason="runtime embedding write mismatch",
-                    expected_dimension=expected,
-                )
-            except Exception as delete_exc:
-                logger.warning(
-                    "Failed to delete mismatched collection '%s': %s",
-                    collection_name,
-                    delete_exc,
-                )
-            vector_store = get_vector_store(collection_name)
-            storage_context = StorageContext.from_defaults(vector_store=vector_store)
-            _emit_progress(
-                progress_callback,
-                stage="indexing",
-                nodes_total=total_nodes,
-                nodes_indexed=0,
-            )
-            _index_in_batches()
-        elif _is_lmstudio_healthcheck_enabled() and _is_embedding_service_unavailable_error(
-            exc
-        ):
+            actual = _get_collection_vector_size(collection_name)
+            raise EmbeddingDimensionMismatchError(
+                f"Cannot index '{collection_name}': existing dimension={actual}, "
+                f"selected model dimension={expected}. Existing vectors were not deleted."
+            ) from exc
+        if _is_lmstudio_healthcheck_enabled() and _is_embedding_service_unavailable_error(exc):
             raise EmbeddingServiceUnavailableError(str(exc)) from exc
-        else:
-            raise
+        raise
 
     _emit_progress(
         progress_callback,

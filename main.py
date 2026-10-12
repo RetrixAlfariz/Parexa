@@ -42,7 +42,8 @@ def main() -> None:
             logger.warning("Embedding warmup failed at startup: %s", exc)
     start_embedding_health_monitor()
     atexit.register(stop_embedding_health_monitor)
-    app.run(debug=_get_debug(), host="0.0.0.0", port=port, threaded=True)
+    host = os.getenv("PAREXA_HOST", "127.0.0.1").strip() or "127.0.0.1"
+    app.run(debug=_get_debug(), host=host, port=port, threaded=True)
 
 
 if __name__ == "__main__":

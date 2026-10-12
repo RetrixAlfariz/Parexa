@@ -20,12 +20,15 @@ if __package__ is None or __package__ == "":
 
     from parexa_interface.services.chat_service import (  # type: ignore[import-not-found]
         ChatServiceError,
+        ChatModelUnavailable,
+        ChatRetrievalUnavailable,
         delete_conversation,
         get_conversation_history,
         get_conversation_list,
         handle_chat_async,
     )
     from parexa_interface.config import settings  # type: ignore[import-not-found]
+    from parexa_interface.services.model_gateway import catalog  # type: ignore[import-not-found]
     from parexa_interface.services import (  # type: ignore[import-not-found]
         ingestion_service,
     )
@@ -39,12 +42,15 @@ if __package__ is None or __package__ == "":
 else:
     from .services.chat_service import (
         ChatServiceError,
+        ChatModelUnavailable,
+        ChatRetrievalUnavailable,
         delete_conversation,
         get_conversation_history,
         get_conversation_list,
         handle_chat_async,
     )
     from .config import settings
+    from .services.model_gateway import catalog
     from .services import ingestion_service
     from .services.upload_progress_service import (
         complete_upload_progress,
@@ -62,11 +68,23 @@ app = Flask(
 )
 
 logger = logging.getLogger(__name__)
-
-
-# Global file mapping to store file metadata
-file_mapping = {}
+# No per-user authentication currently exists. Keep the HTTP server on loopback.
+app.config["MAX_CONTENT_LENGTH"] = settings.max_upload_mb * 1024 * 1024
 _ALLOWED_UPLOAD_EXTENSIONS = {".txt", ".pdf", ".md"}
+
+
+@app.errorhandler(413)
+def oversized_upload(_exc: Exception) -> Any:
+    return jsonify({
+        "error": f"Upload exceeds the configured {settings.max_upload_mb} MiB request limit.",
+        "code": "request_too_large",
+    }), 413
+
+
+@app.route("/api/models", methods=["GET"])
+def chat_models() -> Any:
+    # Exposes model names and availability, never API credentials or server URLs.
+    return jsonify(catalog(settings))
 
 
 @app.route("/", methods=["GET"])
@@ -80,6 +98,8 @@ async def chat() -> Any:
     try:
         result = await handle_chat_async(payload)
         return jsonify(result)
+    except (ChatModelUnavailable, ChatRetrievalUnavailable) as exc:
+        return jsonify({"error": str(exc), "code": "backend_unavailable"}), 503
     except ChatServiceError as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:  # pragma: no cover - defensive
@@ -253,12 +273,6 @@ async def upload_file() -> Any:
         if isinstance(ingestion_stats, dict):
             ingestion_stats["nodes_created"] = nodes_created
 
-        file_mapping[file_id] = {
-            "filename": safe_name,
-            "file_id": file_id,
-            "mime_type": guessed_mime,
-            "uploaded_at": str(file_path.stat().st_mtime),
-        }
         complete_upload_progress(
             upload_tracking_id,
             message="Upload completed",
@@ -283,6 +297,10 @@ async def upload_file() -> Any:
                 ),
             }
         )
+    except ingestion_service.EmbeddingDimensionMismatchError as exc:
+        message = str(exc)
+        fail_upload_progress(upload_tracking_id, message=message)
+        return jsonify({"error": message, "code": "embedding_dimension_mismatch"}), 409
     except ingestion_service.EmbeddingServiceUnavailableError as exc:
         message = (
             "LM Studio embedding unavailable. "
@@ -353,9 +371,10 @@ def conversations_list() -> Any:
 
 
 if __name__ == "__main__":
+    debug = os.getenv("FLASK_DEBUG", "false").strip().lower() in {"1", "true", "yes", "on"}
     app.run(
-        debug=True,
-        host="0.0.0.0",
+        debug=debug,
+        host=os.getenv("PAREXA_HOST", "127.0.0.1"),
         port=int(os.getenv("PORT", 5000)),
         threaded=True,
     )
