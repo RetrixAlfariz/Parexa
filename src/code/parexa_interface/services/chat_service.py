@@ -351,7 +351,7 @@ def handle_chat(payload: Dict[str, Any]) -> Dict[str, Any]:
                 page = str(metadata.get("page_label", "") or "")[:12]
                 excerpt = str(getattr(node, "text", "") or "")[:720]
                 if excerpt:
-                    retrieved_excerpts.append(f"{title} (p.{page or '?'})\\n{excerpt}")
+                    retrieved_excerpts.append(f"{title} (p.{page or '?'})\n{excerpt}")
 
             if hasattr(response, "source_nodes") and response.source_nodes:
                 seen_sources: set[tuple[str, str, str]] = set()
