@@ -132,6 +132,10 @@ def main():
             page.locator("#ob-home").wait_for(state="visible")
             page.locator('[data-ob-tab="notes"]').click()
             assert page.locator("#ob-scratchpad").input_value() == "Browser-local note"
+            page.wait_for_function(
+                "window.parexaChatModelSelection?.model === 'fixture-local-chat'",
+                timeout=15000,
+            )
 
             page.locator('[data-ob-tab="sources"]').click()
             page.locator("#file-upload").set_input_files({
