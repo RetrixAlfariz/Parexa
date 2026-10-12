@@ -81,6 +81,7 @@ class Settings:
     embedding_healthcheck_timeout_sec: int
     embedding_healthcheck_retry_backoff_sec: int
     ingest_ocr_sparse_threshold: int
+    max_upload_mb: int
     executor_io_workers: int
     executor_cpu_workers: int
     genesis_parallel_critics: int
@@ -189,6 +190,7 @@ def _build_settings() -> Settings:
         ingest_ocr_sparse_threshold=_int_from_env(
             "INGEST_OCR_SPARSE_THRESHOLD", 120
         ),
+        max_upload_mb=_int_from_env("PAREXA_MAX_UPLOAD_MB", 25),
         executor_io_workers=_int_from_env(
             "PAREXA_IO_WORKERS", default_io_workers
         ),

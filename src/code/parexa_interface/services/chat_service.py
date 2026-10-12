@@ -22,6 +22,10 @@ class ChatServiceError(Exception):
     """Domain error for chat service operations."""
 
 
+class ChatRetrievalUnavailable(ChatServiceError):
+    """A document-based answer cannot be safely grounded."""
+
+
 _HALLUCINATION_GUARDRAIL = (
     "You are a careful assistant.\n"
     "Do not present guesses, assumptions, or fabricated details as facts.\n"
@@ -312,6 +316,11 @@ def handle_chat(payload: Dict[str, Any]) -> Dict[str, Any]:
                 system_prompt=system_prompt,
             )
             response = query_engine.query(message)
+            if not getattr(response, "source_nodes", None):
+                raise ChatRetrievalUnavailable(
+                    "No verifiable passages were retrieved from the selected documents. "
+                    "No document-based answer was generated."
+                )
 
             if hasattr(response, "source_nodes") and response.source_nodes:
                 seen_sources: set[tuple[str, str, str]] = set()
@@ -331,15 +340,14 @@ def handle_chat(payload: Dict[str, Any]) -> Dict[str, Any]:
                         source_info["page"] = page_num
                     sources.append(source_info)
             reply = _extract_reply(response)
+        except ChatRetrievalUnavailable:
+            raise
         except Exception as exc:
-            logger.error(
-                "RAG pipeline failed, falling back to standard chat: %s",
-                exc,
-                exc_info=True,
-            )
-            chat_history.append(_chat_message(role="user", content=message))
-            response = llm.chat(chat_history)
-            reply = _extract_reply(response)
+            logger.exception("RAG retrieval failed; refusing ungrounded fallback")
+            raise ChatRetrievalUnavailable(
+                "Document retrieval is unavailable. The selected files were not used "
+                "to generate an answer. Check the embedding and retrieval configuration."
+            ) from exc
     elif execution_mode == "browsing":
         execution_meta["provider"] = "gemini"
         execution_meta["model"] = settings.browsing_model
@@ -630,6 +638,7 @@ def delete_conversation(conversation_id: str) -> Dict[str, Any]:
 
 __all__ = [
     "ChatServiceError",
+    "ChatRetrievalUnavailable",
     "handle_chat",
     "handle_chat_async",
     "get_conversation_history",
