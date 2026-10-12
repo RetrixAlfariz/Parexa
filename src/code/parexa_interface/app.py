@@ -297,6 +297,10 @@ async def upload_file() -> Any:
                 ),
             }
         )
+    except ingestion_service.EmbeddingDimensionMismatchError as exc:
+        message = str(exc)
+        fail_upload_progress(upload_tracking_id, message=message)
+        return jsonify({"error": message, "code": "embedding_dimension_mismatch"}), 409
     except ingestion_service.EmbeddingServiceUnavailableError as exc:
         message = (
             "LM Studio embedding unavailable. "
