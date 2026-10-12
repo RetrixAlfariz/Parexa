@@ -240,5 +240,5 @@ def resolve_route(
         context_window=int(getattr(settings, "local_context_window", 8192)),
         max_tokens=int(getattr(settings, "local_max_output_tokens", 2048)),
         timeout_sec=float(getattr(settings, "local_chat_timeout_sec", 120)),
-        max_concurrency=max(1, int(getattr(settings, "local_max_concurrent_inference", 1))),
+        max_concurrency=max(1, min(16, int(getattr(settings, "local_max_concurrent_inference", 1)))),
     )
