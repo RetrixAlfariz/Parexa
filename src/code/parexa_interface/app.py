@@ -64,6 +64,23 @@ app = Flask(
 logger = logging.getLogger(__name__)
 
 
+def _upload_limit_mib() -> int:
+    """Bound upload size to a configurable local limit."""
+    try:
+        requested = int(os.getenv("MAX_UPLOAD_MIB", "100"))
+    except ValueError:
+        requested = 100
+    return max(1, min(requested, 1024))
+
+
+app.config["MAX_CONTENT_LENGTH"] = _upload_limit_mib() * 1024 * 1024
+
+
+@app.errorhandler(413)
+def request_too_large(_error: Exception) -> Any:
+    return jsonify({"error": f"Request exceeds the {_upload_limit_mib()} MiB limit."}), 413
+
+
 # Global file mapping to store file metadata
 file_mapping = {}
 _ALLOWED_UPLOAD_EXTENSIONS = {".txt", ".pdf", ".md"}
@@ -76,7 +93,9 @@ def index() -> str:
 
 @app.route("/api/chat", methods=["POST"])
 async def chat() -> Any:
-    payload: Dict[str, Any] = request.get_json(silent=True) or {}
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"error": "Expected a JSON object."}), 400
     try:
         result = await handle_chat_async(payload)
         return jsonify(result)
@@ -84,7 +103,7 @@ async def chat() -> Any:
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:  # pragma: no cover - defensive
         logger.exception("Kesalahan tidak terduga saat memproses chat")
-        return jsonify({"error": str(exc)}), 500
+        return jsonify({"error": "Internal server error. Check server logs."}), 500
 
 
 @app.route("/api/upload", methods=["POST"])
@@ -294,9 +313,9 @@ async def upload_file() -> Any:
         logger.exception("Error processing file")
         fail_upload_progress(
             upload_tracking_id,
-            message=str(exc) or "Error processing upload",
+            message="Upload processing failed",
         )
-        return jsonify({"error": str(exc)}), 500
+        return jsonify({"error": "Upload failed. Check server logs."}), 500
     finally:
         try:
             if file_path.exists():
@@ -322,7 +341,7 @@ def embedding_health() -> Any:
         return jsonify(ingestion_service.get_embedding_health_status())
     except Exception as exc:
         logger.exception("Failed to resolve embedding health status")
-        return jsonify({"error": str(exc)}), 500
+        return jsonify({"error": "Unable to retrieve embedding health."}), 500
 
 
 @app.route("/api/conversations/<conversation_id>", methods=["GET"])
@@ -347,15 +366,15 @@ def delete_conversation_route(conversation_id: str) -> Any:
 
 @app.route("/api/conversations", methods=["GET"])
 def conversations_list() -> Any:
-    limit = request.args.get("limit", type=int) or 50
+    limit = max(1, min(request.args.get("limit", type=int) or 50, 200))
     result = get_conversation_list(limit)
     return jsonify(result)
 
 
 if __name__ == "__main__":
     app.run(
-        debug=True,
-        host="0.0.0.0",
+        debug=os.getenv("FLASK_DEBUG", "false").strip().lower() in {"1", "true", "yes", "on"},
+        host=os.getenv("HOST", "127.0.0.1"),
         port=int(os.getenv("PORT", 5000)),
         threaded=True,
     )
