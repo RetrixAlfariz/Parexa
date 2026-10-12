@@ -108,11 +108,19 @@ if (typeof marked !== "undefined") {
 }
 
 const renderMarkdown = (text) => {
+  const content = String(text ?? "");
   if (typeof marked !== "undefined" && typeof DOMPurify !== "undefined") {
-    const rawHtml = marked.parse(text);
+    const rawHtml = marked.parse(content);
     return DOMPurify.sanitize(rawHtml);
   }
-  return text.replace(/\n/g, "<br>");
+  // Sanitizer unavailable: render plain text, never unsanitized HTML.
+  return content
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/\n/g, "<br>");
 };
 
 const setSettingsSection = (section) => {
@@ -1362,18 +1370,24 @@ const createFileAttachmentCard = (file) => {
     <div class="file-icon-small" style="color: ${iconColor}">
       ${fileIconSvg}
     </div>
-    <div class="file-name-compact" title="${file.name}">${file.name}</div>
+    <div class="file-name-compact"></div>
     
     <div class="file-card-popup">
         <div class="file-icon" style="background: ${iconColor}20; color: ${iconColor}">
           ${fileIconSvgLarge}
         </div>
         <div class="file-info">
-          <div class="file-name">${file.name}</div>
-          <div class="file-type">${file.type}</div>
+          <div class="file-name"></div>
+          <div class="file-type"></div>
         </div>
     </div>
   `;
+  const name = String(file.name || "Untitled");
+  const compactName = pill.querySelector(".file-name-compact");
+  compactName.textContent = name;
+  compactName.title = name;
+  pill.querySelector(".file-card-popup .file-name").textContent = name;
+  pill.querySelector(".file-type").textContent = String(file.type || "File");
   return pill;
 };
 
@@ -1405,9 +1419,10 @@ const createSourceCitation = (sources) => {
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
         <polyline points="14 2 14 8 20 8"></polyline>
       </svg>
-      <span class="source-text">${sourceText}</span>
+      <span class="source-text"></span>
     `;
     
+    sourceChip.querySelector(".source-text").textContent = sourceText;
     sourceChip.title = `Source: ${sourceText}`;
     sourceChip.setAttribute("aria-label", `Source: ${sourceText}`);
     
@@ -1547,7 +1562,7 @@ const hideTypingIndicator = () => {
 };
 
 const setLoadingState = (isLoading) => {
-  const button = form.querySelector("button");
+  const button = form.querySelector(".send-btn");
   button.disabled = isLoading;
   // button.textContent = isLoading ? "Mengirim..." : "Kirim"; // Using icon instead
   button.style.opacity = isLoading ? "0.7" : "1";
@@ -2559,9 +2574,10 @@ fileInput.addEventListener("change", async (event) => {
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
             <polyline points="14 2 14 8 20 8"></polyline>
           </svg>
-          <span class="file-name">${filename}</span>
+          <span class="file-name"></span>
           <button type="button" class="remove-file" aria-label="Remove file">×</button>
         `;
+        fileChip.querySelector(".file-name").textContent = filename;
 
         const fileObj = {
           id: data.file_id,
