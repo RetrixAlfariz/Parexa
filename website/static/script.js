@@ -80,7 +80,7 @@ let activityTimestampsEnabled =
   localStorage.getItem("parexaActivityTimestamps") !== "false";
 let thinkingTraceEnabled =
   localStorage.getItem("parexaThinkingTrace") !== "false";
-let themePreference = localStorage.getItem("parexaTheme") || "system";
+let themePreference = localStorage.getItem("parexaTheme") || "light";
 let assistantStyle = localStorage.getItem("parexaAssistantStyle") || "default";
 let userProfile =
   parseStoredJson(localStorage.getItem("parexaUserProfile")) || {
@@ -1405,9 +1405,10 @@ const createSourceCitation = (sources) => {
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
         <polyline points="14 2 14 8 20 8"></polyline>
       </svg>
-      <span class="source-text">${sourceText}</span>
+      <span class="source-text"></span>
     `;
     
+    sourceChip.querySelector(".source-text").textContent = sourceText;
     sourceChip.title = `Source: ${sourceText}`;
     sourceChip.setAttribute("aria-label", `Source: ${sourceText}`);
     
@@ -2858,11 +2859,16 @@ form.addEventListener("submit", async (event) => {
         status: "info",
       });
     }
+    // Keep the Observatory inspector synchronized with the actual server response.
+    window.dispatchEvent(new CustomEvent("parexa:response", {
+      detail: { sources, files: currentFiles, execution: executionMeta }
+    }));
     if (payload.activity) {
       applyActivityPayload(payload.activity);
     }
     if (conversationId) {
-      await fetchConversation(conversationId);
+      // appendMessage already rendered the current turn with citation chips.
+      // Fetching history immediately replaces it with older unannotated records.
       await refreshConversationList(conversationId);
     } else if (previousConversationId) {
       await refreshConversationList(previousConversationId);
