@@ -70,8 +70,21 @@ class Settings:
     qdrant_api_key: Optional[str]
     api_key: str
     google_api_key: str
+    chat_provider: str
     chat_model: str
     browsing_model: str
+    allow_cloud_model_selection: bool
+    allow_remote_model_server: bool
+    lmstudio_chat_model: str
+    ollama_chat_model: str
+    ollama_base_url: str
+    ollama_api_key: str
+    local_discovery_timeout_sec: int
+    local_chat_timeout_sec: int
+    local_context_window: int
+    local_max_output_tokens: int
+    local_max_concurrent_inference: int
+    max_upload_mb: int
     embedding_provider: str
     embedding_model: str
     lmstudio_base_url: str
@@ -88,6 +101,11 @@ class Settings:
 
 
 def _build_settings() -> Settings:
+    # Legacy installations keep Cerebras until CHAT_PROVIDER is explicitly
+    # changed. New .env.example starts with LM Studio to support local-first use.
+    chat_provider = os.getenv("CHAT_PROVIDER", "cerebras").strip().lower()
+    if chat_provider not in {"cerebras", "lmstudio", "ollama"}:
+        raise ValueError("CHAT_PROVIDER must be cerebras, lmstudio or ollama.")
     default_model = os.getenv("CHAT_MODEL", "gpt-oss-120b")
     summary_model = os.getenv("SUMMARY_MODEL", default_model)
     browsing_model = os.getenv("BROWSING_MODEL", "gemini-flash-latest")
@@ -166,10 +184,24 @@ def _build_settings() -> Settings:
         qdrant_db_path=qdrant_db_path,
         qdrant_url=qdrant_url,
         qdrant_api_key=qdrant_api_key,
-        api_key=_require_env("CEREBRAS_API_KEY"),
-        google_api_key=_require_env("GOOGLE_API_KEY"),
+        # Individual providers validate their credentials only when selected.
+        api_key=os.getenv("CEREBRAS_API_KEY", "").strip(),
+        google_api_key=os.getenv("GOOGLE_API_KEY", "").strip(),
+        chat_provider=chat_provider,
         chat_model=default_model,
         browsing_model=browsing_model,
+        allow_cloud_model_selection=_bool_from_env("CHAT_ALLOW_CLOUD_SELECTION", False),
+        allow_remote_model_server=_bool_from_env("PAREXA_ALLOW_REMOTE_MODEL_SERVER", False),
+        lmstudio_chat_model=os.getenv("LMSTUDIO_CHAT_MODEL", "").strip(),
+        ollama_chat_model=os.getenv("OLLAMA_CHAT_MODEL", "").strip(),
+        ollama_base_url=os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434/v1").strip(),
+        ollama_api_key=os.getenv("OLLAMA_API_KEY", "ollama").strip() or "ollama",
+        local_discovery_timeout_sec=_int_from_env("LOCAL_MODEL_DISCOVERY_TIMEOUT_SEC", 2),
+        local_chat_timeout_sec=_int_from_env("LOCAL_CHAT_TIMEOUT_SEC", 120),
+        local_context_window=_int_from_env("LOCAL_CHAT_CONTEXT_WINDOW", 8192, minimum=1024),
+        local_max_output_tokens=_int_from_env("LOCAL_CHAT_MAX_OUTPUT_TOKENS", 2048, minimum=128),
+        local_max_concurrent_inference=_int_from_env("LOCAL_MAX_CONCURRENT_INFERENCE", 1),
+        max_upload_mb=_int_from_env("PAREXA_MAX_UPLOAD_MB", 25),
         embedding_provider=embedding_provider,
         embedding_model=embedding_model,
         lmstudio_base_url=lmstudio_base_url,
