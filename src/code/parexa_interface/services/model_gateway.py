@@ -108,7 +108,16 @@ def _request_models(url: str, api_key: str, timeout: float) -> tuple[str, ...]:
     for item in body["data"][:256]:
         if isinstance(item, dict):
             model_id = item.get("id")
+            kind = str(item.get("type") or item.get("model_type") or "").lower()
+            if kind in {"embedding", "embeddings", "decision"}:
+                continue
             if isinstance(model_id, str) and 0 < len(model_id) <= 200:
+                # Some /v1/models endpoints omit model type entirely, even when
+                # embedding models share the same model inventory.
+                if not kind and model_id.lower().startswith((
+                    "text-embedding-", "embedding-", "nomic-embed",
+                )):
+                    continue
                 models.append(model_id)
     return tuple(dict.fromkeys(models))
 
