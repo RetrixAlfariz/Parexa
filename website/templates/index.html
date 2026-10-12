@@ -4,10 +4,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Parexa Interface</title>
+  <title>Parexa Observatory · Local Research Workspace</title>
+  <meta name="theme-color" content="#f4f9fc">
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css', v='5') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css', v='7') }}">
 </head>
 
 <body>
@@ -16,14 +17,22 @@
     <aside class="sidebar">
         <div class="sidebar-top">
           <div class="sidebar-brand">
-            <img src="{{ url_for('static', filename='images/parexa.png') }}" alt="Logo Parexa" class="sidebar-logo" loading="lazy" decoding="async" width="48" height="48">
+            <img src="{{ url_for('static', filename='images/parexa-mark.svg') }}" alt="Logo Parexa" class="sidebar-logo" loading="lazy" decoding="async" width="48" height="48">
             <div class="sidebar-meta">
-              <span class="codename">Parexa</span>
+              <span class="codename">PAREXA</span>
+              <span class="ob-brand-kicker">OBSERVATORY</span>
             </div>
           </div>
-          <button class="new-chat-btn" type="button">+ Percakapan Baru</button>
+          <p class="ob-brand-tagline">Read deeper. Think clearer.<br>Build with evidence.</p>
+          <button class="new-chat-btn" type="button"><span aria-hidden="true">＋</span> New conversation <kbd>Ctrl K</kbd></button>
+          <nav class="ob-side-nav" aria-label="Workspace navigation">
+            <button type="button" class="ob-nav-link is-selected" data-ob-action="home"><span class="ob-nav-icon" aria-hidden="true">⌂</span> Overview</button>
+            <button type="button" class="ob-nav-link" data-ob-action="sources"><span class="ob-nav-icon" aria-hidden="true">▤</span> Sources <span class="ob-nav-count" id="ob-source-count">0</span></button>
+            <button type="button" class="ob-nav-link" data-ob-action="notes"><span class="ob-nav-icon" aria-hidden="true">✎</span> Notes</button>
+            <button type="button" class="ob-nav-link" data-ob-action="activity"><span class="ob-nav-icon" aria-hidden="true">◷</span> Activity</button>
+          </nav>
           <div class="agent-menu">
-            <div class="agent-menu-title">Agent AI</div>
+            <div class="agent-menu-title">REASONING MODE</div>
             <button class="agent-menu-item" type="button" id="agent-default" data-agent="default" aria-pressed="false">
               <span class="agent-avatar">P</span>
               <span class="agent-meta">
@@ -44,7 +53,7 @@
         </div>
       <div class="sidebar-body">
         <nav class="conversation-list" aria-label="Percakapan sebelumnya">
-          <span class="conversation-title">Percakapan</span>
+          <span class="conversation-title">RECENT CONVERSATIONS</span>
           <div class="conversation-empty" hidden>
             <p>Tidak ada percakapan tersimpan.</p>
             <p>Mulai chat baru untuk melihat riwayat di sini.</p>
@@ -53,6 +62,7 @@
         </nav>
       </div>
       <footer class="sidebar-footer">
+        <div class="ob-local-status"><span class="ob-status-dot" aria-hidden="true"></span><span>Local interface <small>Model providers use your configuration</small></span></div>
         <button type="button" class="sidebar-settings-btn" id="sidebar-settings-btn" aria-label="Open settings" aria-expanded="false">
           <span class="sidebar-settings-icon">⚙</span>
           <span>Settings</span>
@@ -63,13 +73,15 @@
     <main class="chat-panel">
       <header class="chat-header">
         <div class="chat-brand">
-          <img src="{{ url_for('static', filename='images/parexa.png') }}" alt="Parexa icon" class="brand-icon" decoding="async" width="42" height="42">
+          <img src="{{ url_for('static', filename='images/parexa-mark.svg') }}" alt="Parexa icon" class="brand-icon" decoding="async" width="42" height="42">
           <div>
-            <h1>Parexa</h1>
+            <h1>Parexa <span class="ob-title-small">/ Observatory</span></h1>
             <p id="agent-indicator" class="agent-indicator" hidden></p>
           </div>
         </div>
         <div class="activity-controls">
+          <span class="ob-header-label">PERSONAL RESEARCH WORKSPACE</span>
+          <button id="ob-inspector-toggle" class="ob-header-action" type="button" aria-controls="ob-inspector" aria-expanded="true">Sources</button>
           <button class="sidebar-toggle-btn" type="button" id="sidebar-toggle-btn" aria-pressed="false"
             title="Toggle sidebar">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
@@ -86,6 +98,41 @@
         </div>
       </header>
 
+      <section id="ob-home" class="ob-home" aria-labelledby="ob-home-title">
+        <div class="ob-hero">
+          <div class="ob-hero-art" aria-hidden="true"><span class="ob-hero-ring"></span><span class="ob-hero-beam"></span><span class="ob-hero-horizon"></span></div>
+          <span class="ob-eyebrow">PAREXA / THE EXPLORATION SPACE</span>
+          <h2 id="ob-home-title">What would you like to<br><em>explore</em> today?</h2>
+          <p>Follow your curiosity. Keep the evidence close.</p>
+        </div>
+        <div class="ob-home-intro"><span>A PLACE TO START</span><span>01 / 04</span></div>
+        <div class="ob-home-actions" aria-label="Research starters">
+          <button type="button" class="ob-action-card" data-ob-action="analyze">
+            <span class="ob-action-icon" aria-hidden="true">▤</span><strong>Analyze documents</strong><span>Upload PDFs and ask grounded questions.</span><span class="ob-card-arrow" aria-hidden="true">↗</span>
+          </button>
+          <button type="button" class="ob-action-card" data-ob-action="synthesize">
+            <span class="ob-action-icon" aria-hidden="true">⌘</span><strong>Research &amp; synthesize</strong><span>Use Genesis to examine competing ideas.</span><span class="ob-card-arrow" aria-hidden="true">↗</span>
+          </button>
+          <button type="button" class="ob-action-card" data-ob-action="explain">
+            <span class="ob-action-icon" aria-hidden="true">✳</span><strong>Solve &amp; explain</strong><span>Work through a difficult concept.</span><span class="ob-card-arrow" aria-hidden="true">↗</span>
+          </button>
+          <button type="button" class="ob-action-card" data-ob-action="plan">
+            <span class="ob-action-icon" aria-hidden="true">◇</span><strong>Create a plan</strong><span>Turn questions into a structured path.</span><span class="ob-card-arrow" aria-hidden="true">↗</span>
+          </button>
+        </div>
+        <div class="ob-home-lower">
+          <section class="ob-home-recent" aria-labelledby="ob-recent-title">
+            <div class="ob-section-header"><h3 id="ob-recent-title">Continue your research</h3><span>Saved conversations</span></div>
+            <div id="ob-recent-list" class="ob-recent-list"><p class="ob-empty">Your conversations will appear here.</p></div>
+          </section>
+          <section class="ob-home-aside" aria-labelledby="ob-aside-title">
+            <span class="ob-section-index">THE PAREXA METHOD</span>
+            <h3 id="ob-aside-title">Better questions.<br>Clearer connections.</h3>
+            <p>Bring your sources, compare ideas, and make every answer easier to examine.</p>
+            <button type="button" data-ob-action="sources">Explore source context <span aria-hidden="true">↗</span></button>
+          </section>
+        </div>
+      </section>
       <section id="chat-log" class="chat-log" aria-live="polite"></section>
       <div id="activity-overlay" class="utility-overlay" hidden></div>
       <aside id="activity-drawer" class="utility-drawer" hidden aria-label="Activity panel">
@@ -389,12 +436,48 @@
             <span class="sr-only">Toggle browsing</span>
           </button>
           <input type="file" id="file-upload" class="sr-only" accept=".txt,.pdf,.md" multiple>
-          <input id="user-input" name="message" type="text" placeholder="Kirim pesan kepada Parexa..."
+          <input id="user-input" name="message" type="text" placeholder="Ask Parexa anything..."
             autocomplete="off">
-          <button type="submit" class="send-btn">Kirim</button>
+          <button type="submit" class="send-btn" aria-label="Send message">Send</button>
         </div>
       </form>
     </main>
+    <aside id="ob-inspector" class="ob-inspector" aria-label="Research inspector">
+      <div class="ob-inspector-top"><span class="ob-inspector-heading">RESEARCH DESK</span><button type="button" id="ob-inspector-close" class="ob-inspector-close" aria-label="Close inspector">×</button></div>
+      <div class="ob-inspector-tabs" role="tablist" aria-label="Inspector tabs">
+        <button type="button" role="tab" aria-selected="true" data-ob-tab="sources">Sources</button>
+        <button type="button" role="tab" aria-selected="false" data-ob-tab="context">Context</button>
+        <button type="button" role="tab" aria-selected="false" data-ob-tab="notes">Notes</button>
+      </div>
+      <section class="ob-inspector-panel" role="tabpanel" data-ob-panel="sources">
+        <div class="ob-inspector-section-header"><h2>Working sources</h2><span id="ob-inspector-source-count">0</span></div>
+        <p class="ob-help-text">Attachments selected for the next question and documents used in your last answer.</p>
+        <button type="button" class="ob-add-source" id="ob-add-source">+ Attach a document <span>.pdf, .txt, .md</span></button>
+        <div id="ob-source-list" class="ob-source-list" aria-live="polite"><p class="ob-empty">No sources selected. Attach a document to begin.</p></div>
+        <div class="ob-evidence-box"><div class="ob-inspector-section-header"><h2>Evidence from last answer</h2><span id="ob-evidence-count">0</span></div><div id="ob-evidence-list"><p class="ob-empty">Source references appear here when Parexa returns them.</p></div></div>
+      </section>
+      <section class="ob-inspector-panel" role="tabpanel" data-ob-panel="context" hidden>
+        <div class="ob-inspector-section-header"><h2>Context &amp; execution</h2></div>
+        <p class="ob-help-text">Current configuration and last response. Advanced memory selection is not available yet.</p>
+        <dl class="ob-context-details">
+          <dt>Assistant</dt><dd id="ob-provider">Not run yet</dd>
+          <dt>Retrieval</dt><dd id="ob-execution-mode">No request yet</dd>
+          <dt>Embedding status</dt><dd id="ob-embedding-status">Checking configuration...</dd>
+          <dt>Reasoning</dt><dd id="ob-genesis-label">Standard</dd>
+        </dl>
+        <button type="button" class="ob-context-action" id="ob-toggle-genesis">Switch reasoning mode</button>
+        <button type="button" class="ob-context-action" id="ob-open-activity">Inspect execution activity ↗</button>
+        <p class="ob-private-note">Your application runs locally. AI providers may connect to external services, depending on your .env settings.</p>
+      </section>
+      <section class="ob-inspector-panel" role="tabpanel" data-ob-panel="notes" hidden>
+        <div class="ob-inspector-section-header"><h2>Scratch notes</h2><span>Browser only</span></div>
+        <p class="ob-help-text">Keep ideas close while researching. Notes are stored in this browser, not sent to the model.</p>
+        <label class="sr-only" for="ob-scratchpad">Research scratchpad</label>
+        <textarea id="ob-scratchpad" class="ob-scratchpad" rows="13" placeholder="Ideas, questions, references..."></textarea>
+        <div id="ob-notes-status" class="ob-notes-status" role="status">Stored locally as you type.</div>
+      </section>
+      <div class="ob-inspector-bottom"><span class="ob-status-dot" aria-hidden="true"></span><span>YOUR SPACE FOR DEEP WORK</span></div>
+    </aside>
   </div>
 
   <div id="toast-stack" class="toast-stack" aria-live="polite" aria-relevant="additions"></div>
@@ -420,7 +503,8 @@
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.2/dist/purify.min.js" defer></script>
-  <script src="{{ url_for('static', filename='script.js', v='5') }}" defer></script>
+  <script src="{{ url_for('static', filename='script.js', v='7') }}" defer></script>
+  <script src="{{ url_for('static', filename='observatory.js', v='1') }}" defer></script>
 </body>
 
 </html>
