@@ -1,0 +1,52 @@
+name: Observatory UI checks
+
+on:
+  push:
+    branches:
+      - main
+      - 'feature/parexa-observatory-ui-*'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  ui-static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: |
+          node --check website/static/script.js
+          node --check website/static/observatory.js
+      - name: Check HTML structure and data contracts
+        run: python -m unittest discover -s tests -p 'test_observatory_ui.py' -v
+      - name: Check Python syntax
+        run: python -m compileall -q main.py src/code
+
+  ui-browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install browser smoke dependencies
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Exercise upload, citations, notes, responsive navigation
+        run: python tests/observatory_browser_smoke.py
+      - name: Upload actual UI screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: parexa-observatory-screenshots
+          path: artifacts/*.png
+          if-no-files-found: ignore
