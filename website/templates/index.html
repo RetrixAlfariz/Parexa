@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#f4f9fc">
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css', v='7') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css', v='8') }}">
 </head>
 
 <body>
@@ -81,6 +81,7 @@
         </div>
         <div class="activity-controls">
           <span class="ob-header-label">PERSONAL RESEARCH WORKSPACE</span>
+          <button id="ob-model-button" class="ob-header-action ob-model-header" type="button" aria-controls="ob-inspector" aria-label="Choose chat model">Models</button>
           <button id="ob-inspector-toggle" class="ob-header-action" type="button" aria-controls="ob-inspector" aria-expanded="true">Sources</button>
           <button class="sidebar-toggle-btn" type="button" id="sidebar-toggle-btn" aria-pressed="false"
             title="Toggle sidebar">
@@ -438,6 +439,7 @@
           <input type="file" id="file-upload" class="sr-only" accept=".txt,.pdf,.md" multiple>
           <input id="user-input" name="message" type="text" placeholder="Ask Parexa anything..."
             autocomplete="off">
+          <button type="button" id="ob-composer-model" class="ob-composer-model" title="Choose inference model" aria-label="Choose inference model">Model</button>
           <button type="submit" class="send-btn" aria-label="Send message">Send</button>
         </div>
       </form>
@@ -457,8 +459,14 @@
         <div class="ob-evidence-box"><div class="ob-inspector-section-header"><h2>Evidence from last answer</h2><span id="ob-evidence-count">0</span></div><div id="ob-evidence-list"><p class="ob-empty">Source references appear here when Parexa returns them.</p></div></div>
       </section>
       <section class="ob-inspector-panel" role="tabpanel" data-ob-panel="context" hidden>
-        <div class="ob-inspector-section-header"><h2>Context &amp; execution</h2></div>
-        <p class="ob-help-text">Current configuration and last response. Advanced memory selection is not available yet.</p>
+        <div class="ob-inspector-section-header"><h2>Model runtime</h2><span id="ob-model-locality">Discovering</span></div>
+        <p class="ob-help-text">Choose a model served by LM Studio or Ollama. Cloud providers appear only when you configure and enable them.</p>
+        <label class="ob-model-label" for="ob-chat-model-select">CHAT MODEL</label>
+        <select id="ob-chat-model-select" class="ob-model-select" aria-label="Available chat models"><option value="">Discovering models...</option></select>
+        <div class="ob-model-toolbar"><span id="ob-model-status" role="status">Checking local model servers...</span><button type="button" id="ob-refresh-models">Refresh ↻</button></div>
+        <p class="ob-model-privacy" id="ob-model-privacy">Local inference sends prompts to your configured local model server. Web search and cloud embeddings are separately configured.</p>
+        <div class="ob-inspector-section-header ob-runtime-section-header"><h2>Context &amp; execution</h2></div>
+        <p class="ob-help-text">The provider, model, embedding and retrieval mode for your last answer. Advanced memory selection is not available yet.</p>
         <dl class="ob-context-details">
           <dt>Assistant</dt><dd id="ob-provider">Not run yet</dd>
           <dt>Retrieval</dt><dd id="ob-execution-mode">No request yet</dd>
@@ -503,8 +511,9 @@
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.2/dist/purify.min.js" defer></script>
-  <script src="{{ url_for('static', filename='script.js', v='7') }}" defer></script>
+  <script src="{{ url_for('static', filename='script.js', v='8') }}" defer></script>
   <script src="{{ url_for('static', filename='observatory.js', v='1') }}" defer></script>
+  <script src="{{ url_for('static', filename='model_selector.js', v='1') }}" defer></script>
 </body>
 
 </html>
