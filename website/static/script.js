@@ -107,12 +107,19 @@ if (typeof marked !== "undefined") {
   });
 }
 
+const escapeHtmlText = (value) =>
+  String(value ?? "").replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  })[character]);
+
 const renderMarkdown = (text) => {
   if (typeof marked !== "undefined" && typeof DOMPurify !== "undefined") {
     const rawHtml = marked.parse(text);
     return DOMPurify.sanitize(rawHtml);
   }
-  return text.replace(/\n/g, "<br>");
+  // Marked and DOMPurify are optional CDN assets. Escape content when
+  // they are unavailable rather than treating untrusted text as HTML.
+  return escapeHtmlText(text).replace(/\n/g, "<br>");
 };
 
 const setSettingsSection = (section) => {
@@ -1358,19 +1365,21 @@ const createFileAttachmentCard = (file) => {
     </svg>
   `;
 
+  const safeName = escapeHtmlText(file.name);
+  const safeType = escapeHtmlText(file.type);
   pill.innerHTML = `
     <div class="file-icon-small" style="color: ${iconColor}">
       ${fileIconSvg}
     </div>
-    <div class="file-name-compact" title="${file.name}">${file.name}</div>
+    <div class="file-name-compact" title="${safeName}">${safeName}</div>
     
     <div class="file-card-popup">
         <div class="file-icon" style="background: ${iconColor}20; color: ${iconColor}">
           ${fileIconSvgLarge}
         </div>
         <div class="file-info">
-          <div class="file-name">${file.name}</div>
-          <div class="file-type">${file.type}</div>
+          <div class="file-name">${safeName}</div>
+          <div class="file-type">${safeType}</div>
         </div>
     </div>
   `;
