@@ -1,138 +1,89 @@
-# Parexa Interface
+# Parexa Observatory
 
-Project ini dibuat sebagai Final Project Sanber Code Bootcamp batch 8.
+> **Local-first AI research workspace** for document reading, source-aware answers, conversations and optional Genesis multi-agent review.
 
-**Parexa** adalah AI Chat Interface berbasis **Flask** yang mendukung:
-- **RAG (Retrieval-Augmented Generation)** lewat unggah dokumen
-- **Fallback OCR** untuk PDF hasil scan / halaman dengan teks minim
-- **Genesis mode (multi-agent)**: draft → critics → synthesis/final
-- **Riwayat chat persisten** (conversation storage)
+Parexa is a Flask + vanilla JavaScript application. It provides **model routing**, not a newly trained language model. The latest runtime supports **LM Studio, Ollama, and the original Cerebras integration** for chat. Embeddings and web-grounded browsing are configured separately.
 
-![Dark Parexa UI](https://images2.imgbox.com/95/cc/YVmQe70h_o.jpeg)
-![Light Parexa UI](https://images2.imgbox.com/ba/63/ouoX5xdX_o.jpeg)
+## Quick start: run local chat without cloud credentials
 
----
+Install Python 3.10+ and [uv](https://docs.astral.sh/uv/). Start LM Studio's local server and load any compatible **chat** model.
 
-## Highlights
-
-- Upload & RAG untuk: `.pdf`, `.md`, `.txt`
-- OCR fallback untuk PDF scan / sparse text menggunakan **EasyOCR**
-- Genesis mode: draft → critics → final refinement (opsional)
-- Jalur eksekusi async (executor pools) untuk workload upload/chat yang berat
-- Persistence via **ChromaDB** (conversation history + vector store)
-- Runtime data dipusatkan di folder `runtime/` (default) atau diarahkan via `PAREXA_DATA_DIR`
-
----
-
-## Tech Stack
-
-- Backend: Flask
-- Frontend: HTML, CSS, Vanilla JavaScript
-- AI/ML: LlamaIndex, Cerebras API (chat), Google GenAI Embeddings (embedding), PyMuPDF, EasyOCR
-- Storage/Vector DB: ChromaDB
-
----
-
-## Requirements
-
-- Python `3.10+`
-- Required API keys:
-  - `CEREBRAS_API_KEY`
-  - `GOOGLE_API_KEY`
-
----
-
-## Quick Start
-
-1. Clone repo
 ```bash
-git clone <repository-url>
+git clone https://github.com/RetrixAlfariz/Parexa.git
 cd Parexa
-```
-2. Buat virtual environment
-```bash
-python -m venv venv
-# Windows
-.\venv\Scripts\activate
-# Linux/Mac
-source venv/bin/activate
-```
-3. Install dependencies
-```bash
-pip install -r requirements.txt
-```
-4. Copy `.env.example` ke `.env` dan isi API keys
-```bash
-# Windows
-copy .env.example .env
-# Linux/Mac
 cp .env.example .env
+uv sync --locked
+uv run python main.py
 ```
-5. Jalankan aplikasi
+
+Windows PowerShell: `Copy-Item .env.example .env` instead of `cp`.
+
+Open **http://127.0.0.1:5000**. Select a loaded LM Studio model in the **Models** selector in the header or composer. The model list is obtained from the configured local `/v1/models` endpoint. If no model is found, start the server and load a model, then refresh.
+
+**Ollama alternative:** start Ollama, pull a chat model, set `CHAT_PROVIDER=ollama` in `.env`, and select the model through the UI.
+
+No cloud API keys are needed for **text chat** with a locally running chat model. Document RAG additionally requires the separately configured **embedding model**, even when chat is local.
+
+## What Parexa supports
+
+- Chat through locally served LM Studio or Ollama models, with selectable per-request routes.
+- Legacy Cerebras chat when configured, and an explicit opt-in for selecting cloud models alongside a local default.
+- Document upload and RAG for PDF, Markdown and plain text; PyMuPDF with conditional EasyOCR.
+- LlamaIndex + Qdrant document vectors, optional BM25 fusion and reranking.
+- Selected-file RAG now returns an explicit error if retrieval fails instead of silently answering without evidence.
+- Persistent conversation records and compact summaries.
+- Optional Genesis multi-agent: draft, critics and synthesis, all using the selected chat provider.
+- Parexa Observatory UI with source inspector and a **browser-only** scratchpad.
+
+**Not implemented:** training a new Parexa foundation model, PDF page preview, semantic long-term memory, streaming tokens to the browser, real GPU telemetry, or measured autonomous task routing.
+
+## Model configuration
+
+The new `.env.example` is local-first. Existing `.env` files without `CHAT_PROVIDER` retain the previous Cerebras default for backward compatibility.
+
+| Variable | Description |
+| --- | --- |
+| `CHAT_PROVIDER` | `lmstudio`, `ollama`, or `cerebras` |
+| `LMSTUDIO_CHAT_MODEL` / `OLLAMA_CHAT_MODEL` | Optional pinned local model; blank chooses the first discovered model |
+| `LMSTUDIO_BASE_URL` / `OLLAMA_BASE_URL` | OpenAI-compatible server URL |
+| `LOCAL_CHAT_CONTEXT_WINDOW` | Configured context budget reported to LlamaIndex |
+| `LOCAL_CHAT_MAX_OUTPUT_TOKENS` | Per-call completion cap |
+| `LOCAL_MAX_CONCURRENT_INFERENCE` | Bounded local inference concurrency; default 1 |
+| `CHAT_ALLOW_CLOUD_SELECTION` | Explicitly permit additional cloud model selection when a key is provided |
+| `EMBEDDING_PROVIDER` | `lmstudio` or `google` (independent of chat provider) |
+| `EMBEDDING_MODEL` | Exact local or cloud embedding model name |
+| `GOOGLE_API_KEY` | Needed for Google embeddings and optional Gemini web grounding |
+| `CEREBRAS_API_KEY` | Needed for Cerebras chat, not for local inference |
+
+Cloud selection does **not** occur automatically after local failure. Web browsing is an explicit cloud-grounding path when enabled and configured; it is not part of purely local chat.
+
+See [the model runtime guide](docs/MODEL_RUNTIME.md) for privacy boundaries, troubleshooting and benchmarks, and [the Observatory UI guide](docs/OBSERVATORY_UI.md) for UI features.
+
+## Safety and storage
+
+- The HTTP server binds to `127.0.0.1` by default because it currently has **no authentication**. Do not expose it on an untrusted network.
+- Local model server URLs default to loopback only; remote use must be deliberately enabled and use HTTPS.
+- When an embedding model's dimensionality differs from an existing Qdrant collection, Parexa rejects indexing rather than deleting vectors. **Reindexing is a deliberate future migration operation, not automatic.**
+- Original uploaded PDFs are not retained as a full source archive. Current evidence metadata records file name and page, not a byte-replayable original document.
+- A local application does not guarantee fully offline behavior if cloud embeddings, Cerebras, or Google browsing are configured.
+
+## Tests
+
 ```bash
-python app.py
-```
-Aplikasi akan berjalan di `http://localhost:5000`
-
-
-## Environment Configuration
-Minimal required:
-```
-CEREBRAS_API_KEY=your_cerebras_key_here
-GOOGLE_API_KEY=your_google_ai_key_here
-```
-Common optional:
-```
-# Optional: simpan runtime data di luar root repo
-PAREXA_DATA_DIR=runtime
-
-# Flask
-FLASK_ENV=development
-PORT=5000
-
-# Embedding model (Google)
-EMBEDDING_MODEL=models/gemini-embedding-001
-
-# Ingestion + execution tuning
-INGEST_OCR_SPARSE_THRESHOLD=120
-PAREXA_IO_WORKERS=4
-PAREXA_CPU_WORKERS=4
-GENESIS_PARALLEL_CRITICS=3
+python -m unittest discover -s tests -p 'test_model_gateway.py' -v
+python -m unittest discover -s tests -p 'test_local_chat_llm.py' -v
+node --check website/static/model_selector.js
 ```
 
----
-## Usage Notes
+GitHub Actions run pure-stdlib routing tests and a real HTTP integration using a fake local OpenAI-compatible model server; another workflow tests the Observatory interface in Chromium. These tests do **not** measure a real model's answer quality or performance.
 
-- Upload dokumen via UI (ikon attachment). Setelah upload sukses, file akan diproses dan diindex.
+## Research priorities
 
-- Untuk request yang membawa files / file_ids, Parexa akan memprioritaskan RAG mode (jawab berdasarkan dokumen).
+1. Provider reliability and inference timing (now).
+2. Evaluated sparse/dense retrieval and source-span evidence.
+3. Measured memory/context compilation and conditional agent routing.
+4. Optional compact, specialized model research **only after** repeatable baselines.
 
-- Jika browsing mode ada, tapi request juga menyertakan file, browsing akan dioverride agar jawaban fokus pada konteks dokumen.
+## Origin
 
----
-## Troubleshooting
-### 1) Jawaban tidak menyertakan konteks file (RAG tidak kepakai)
-
-Checklist:
-
->Pastikan upload mengembalikan file_id.
-
->Pastikan request chat menyertakan files atau file_ids.
-
->Ajukan pertanyaan spesifik. Upload tanpa pertanyaan biasanya tidak memicu retrieval yang berarti.
-
->Cek bagian warnings pada respons upload (kalau ada) untuk indikasi masalah parsing.
-
-### 2) Upload PDF scan tapi teks kosong
-
-Itu normal untuk PDF yang isinya gambar (scan).
-
->Pastikan OCR fallback aktif dan threshold sesuai kebutuhan.
-
->Coba turunkan INGEST_OCR_SPARSE_THRESHOLD jika terlalu banyak halaman dianggap “sparse”.
-
----
-## W.I.P
-- Image Understanding Document
-- Episodic and Semantic Memory system
-- Multiple Swarm Agents
+Originally the Sanber Code Bootcamp Batch 8 final project. Continued development focuses on an evidence-first, compute-conscious research application.
