@@ -66,6 +66,20 @@ class ModelGatewayTests(unittest.TestCase):
             "https://model.example/v1",
         )
 
+    def test_typed_embedding_models_are_not_exposed_as_chat(self):
+        import io
+        import json
+        response = {
+            "data": [
+                {"id": "text-embedding-001", "type": "embedding"},
+                {"id": "nomic-embed-v1"},
+                {"id": "good-chat", "type": "llm"},
+            ]
+        }
+        with patch.object(gateway, "urlopen", return_value=io.BytesIO(json.dumps(response).encode())):
+            models = gateway._request_models("http://127.0.0.1:1234/v1", "test", 1)
+        self.assertEqual(models, ("good-chat",))
+
     def test_local_model_route_and_catalog_do_not_leak_tokens(self):
         settings = configuration(lmstudio_api_key="PRIVATE_TEST_KEY")
         with patch.object(gateway, "_request_models", return_value=("local:chat1", "local:chat2")):
