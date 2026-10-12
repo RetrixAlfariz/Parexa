@@ -199,6 +199,12 @@ def resolve_route(
     requested_model: Optional[str] = None,
 ) -> ModelRoute:
     """Validate a requested route against server-controlled capabilities."""
+    if requested_provider is not None and not isinstance(requested_provider, str):
+        raise ModelSelectionError("Model provider must be a string.")
+    if requested_model is not None and not isinstance(requested_model, str):
+        raise ModelSelectionError("Model identifier must be a string.")
+    if isinstance(requested_model, str) and len(requested_model) > 200:
+        raise ModelSelectionError("Model identifier is too long.")
     provider = (requested_provider or getattr(settings, "chat_provider", "cerebras")).strip().lower()
     model = (requested_model or "").strip()
 
