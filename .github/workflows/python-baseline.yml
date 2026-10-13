@@ -1,0 +1,31 @@
+name: Python baseline checks
+
+on:
+  push:
+    branches:
+      - main
+      - 'refactor/**'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    name: Compile Python (${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Check Python syntax without heavyweight AI dependencies
+        run: python -m compileall -q main.py src/code tests
+
+  # Runtime unit tests require the full LlamaIndex/PyTorch stack.
+  # Add a separately measured dependency-cached job after the package
+  # and integration test boundaries are stabilized.
