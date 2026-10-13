@@ -83,7 +83,7 @@ class ObservatoryStructureTests(unittest.TestCase):
             self.assertIn(identifier, self.parser.ids)
         self.assertIn("filename='workspace.js'", self.html)
         workspace = (STATIC / "workspace.js").read_text(encoding="utf-8")
-        self.assertIn("Alt", workspace)
+        self.assertIn("event.altKey", workspace)
         self.assertIn('key === "/"', workspace)
         self.assertIn("MutationObserver", workspace)
         self.assertIn("css/workspace-status.css", (STATIC / "styles.css").read_text(encoding="utf-8"))
