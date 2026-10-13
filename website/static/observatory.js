@@ -52,23 +52,30 @@
   function updateHomeVisibility() {
     const hasChat = Boolean(chatLog.querySelector(".message:not(.typing)"));
     panel.classList.toggle("ob-is-home", !hasChat);
+    const title = $("#studio-conversation-title");
+    const activeTitle = $(".conversation-item.active .conversation-item-title", conversations)?.textContent?.trim();
+    const firstQuestion = $(".message.user .message-content", chatLog)?.textContent?.trim();
+    if (title) title.textContent = hasChat ? (activeTitle || firstQuestion || "Conversation") : "New conversation";
+    input.placeholder = hasChat ? "Ask a follow-up…" : "Ask Parexa anything…";
     const overview = $('[data-ob-action="home"].ob-nav-link');
     if (overview) overview.classList.toggle("is-selected", !hasChat);
     if (inspectorToggle) {
-      inspectorToggle.setAttribute("aria-expanded", String(!mobileInspector.matches || shell.classList.contains("ob-inspector-open")));
+      inspectorToggle.setAttribute("aria-expanded", String(shell.classList.contains("ob-inspector-open")));
     }
   }
 
   function openInspector(tab = "sources") {
     selectInspectorTab(tab);
-    if (mobileInspector.matches) shell.classList.add("ob-inspector-open");
+    shell.classList.add("ob-inspector-open");
+    inspector.hidden = false;
     if (inspectorToggle) inspectorToggle.setAttribute("aria-expanded", "true");
     if (mobileInspector.matches) inspectorClose?.focus();
   }
 
   function closeInspector() {
     shell.classList.remove("ob-inspector-open");
-    if (inspectorToggle) inspectorToggle.setAttribute("aria-expanded", String(!mobileInspector.matches));
+    inspector.hidden = true;
+    if (inspectorToggle) inspectorToggle.setAttribute("aria-expanded", "false");
     inspectorToggle?.focus();
   }
 
@@ -127,7 +134,7 @@
 
   function sourceItem(file) {
     const row = createElement("div", "ob-source-item");
-    row.appendChild(createElement("span", "ob-source-icon", "▤"));
+    row.appendChild(createElement("span", "ob-source-icon studio-icon icon-file-text"));
     const copy = createElement("div", "ob-source-copy");
     copy.appendChild(createElement("span", "ob-source-name", String(file.name || "Document")));
     copy.appendChild(createElement("span", "ob-source-status", String(file.status || "Used in last answer")));
@@ -266,7 +273,7 @@
     });
   });
   inspectorToggle?.addEventListener("click", () => {
-    if (mobileInspector.matches && shell.classList.contains("ob-inspector-open")) {
+    if (shell.classList.contains("ob-inspector-open")) {
       closeInspector();
     } else {
       openInspector("sources");
@@ -328,8 +335,8 @@
   });
 
   function applyInspectorBreakpoint() {
-    if (!mobileInspector.matches) shell.classList.remove("ob-inspector-open");
-    inspectorToggle?.setAttribute("aria-expanded", String(!mobileInspector.matches || shell.classList.contains("ob-inspector-open")));
+    inspector.hidden = !shell.classList.contains("ob-inspector-open");
+    inspectorToggle?.setAttribute("aria-expanded", String(shell.classList.contains("ob-inspector-open")));
   }
   mobileInspector.addEventListener?.("change", applyInspectorBreakpoint);
 
@@ -352,14 +359,77 @@
   document.addEventListener("keydown", (event) => {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
       event.preventDefault();
-      input.focus();
-      input.select();
+      const commands = $("#px-command-toggle");
+      if (commands) commands.click();
+      else { input.focus(); input.select(); }
     }
     if (event.key === "Escape" && shell.classList.contains("ob-inspector-open")) {
       closeInspector();
     }
   });
 
+  const sidebar = $(".sidebar");
+  const sidebarToggle = $("#sidebar-toggle-btn");
+  const backdrop = $("#studio-sidebar-backdrop");
+  const mobileSidebar = window.matchMedia("(max-width: 760px)");
+  function syncSidebar() {
+    const collapsed = shell.classList.contains("sidebar-collapsed");
+    if (sidebar) sidebar.inert = collapsed;
+    if (backdrop) backdrop.hidden = !mobileSidebar.matches || collapsed;
+  }
+  function applySidebarViewport() {
+    const collapsed = mobileSidebar.matches || localStorage.getItem("parexaSidebarHidden") === "true";
+    shell.classList.toggle("sidebar-collapsed", collapsed);
+    sidebarToggle?.setAttribute("aria-pressed", String(collapsed));
+    sidebarToggle?.setAttribute("title", collapsed ? "Show sidebar" : "Hide sidebar");
+    sidebar?.setAttribute("aria-hidden", String(collapsed));
+    syncSidebar();
+  }
+  function dismissSidebar() {
+    if (!shell.classList.contains("sidebar-collapsed")) sidebarToggle?.click();
+    sidebarToggle?.focus();
+  }
+  backdrop?.addEventListener("click", dismissSidebar);
+  sidebarToggle?.addEventListener("click", syncSidebar);
+  const focusable = (root) => $$("button, input, textarea, select, a[href], [tabindex]", root)
+    .filter((element) => !element.disabled && element.tabIndex >= 0 && element.getClientRects().length);
+  [$("#settings-drawer"), $("#activity-drawer")].filter(Boolean).forEach((drawer) => {
+    let returnFocus = null;
+    new MutationObserver(() => {
+      if (!drawer.hidden) {
+        returnFocus = document.activeElement;
+        focusable(drawer)[0]?.focus();
+      } else if (drawer.contains(document.activeElement)) {
+        (returnFocus?.getClientRects().length ? returnFocus : sidebarToggle)?.focus();
+      }
+    }).observe(drawer, { attributes: true, attributeFilter: ["hidden"] });
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Tab" || !$("#modal-overlay")?.hidden || $("#px-command-dialog")?.open) return;
+    const drawer = [$("#settings-drawer"), $("#activity-drawer")].find((element) => element && !element.hidden);
+    const root = drawer || (!inspector.hidden && mobileInspector.matches ? inspector :
+      mobileSidebar.matches && !shell.classList.contains("sidebar-collapsed") ? sidebar : null);
+    if (!root) return;
+    const controls = focusable(root);
+    const first = controls[0];
+    const last = controls.at(-1);
+    if (!first) return;
+    if (!root.contains(document.activeElement) || (event.shiftKey && document.activeElement === first)) {
+      event.preventDefault();
+      (event.shiftKey ? last : first).focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  });
+  sidebar?.addEventListener("click", (event) => {
+    if (mobileSidebar.matches && event.target.closest(".conversation-item, .new-chat-btn, .ob-nav-link, .sidebar-settings-btn")) dismissSidebar();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && mobileSidebar.matches && !shell.classList.contains("sidebar-collapsed")) dismissSidebar();
+  });
+  mobileSidebar.addEventListener("change", applySidebarViewport);
+  applySidebarViewport();
   updateHomeVisibility();
   renderRecent();
   renderSources();

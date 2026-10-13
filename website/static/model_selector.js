@@ -28,6 +28,11 @@
       ? { provider: route.provider, model: route.model }
       : null;
 
+    const modelState = document.getElementById("studio-model-state");
+    if (modelState) {
+      modelState.textContent = route ? describe(route) : "No model connected";
+      modelState.dataset.state = route ? "available" : "unavailable";
+    }
     if (route) {
       const short = route.model.length > 20 ? route.model.slice(0, 19) + "…" : route.model;
       buttons.forEach((button) => {
@@ -85,8 +90,7 @@
     const tab = document.querySelector('[data-ob-tab="context"]');
     const shell = document.querySelector(".app-shell");
     const toggle = document.getElementById("ob-inspector-toggle");
-    if (window.matchMedia("(max-width: 1280px)").matches
-        && !shell?.classList.contains("ob-inspector-open")) {
+    if (!shell?.classList.contains("ob-inspector-open")) {
       toggle?.click();
     }
     tab?.click();

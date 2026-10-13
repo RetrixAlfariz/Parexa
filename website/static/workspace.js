@@ -95,7 +95,7 @@
       target?.isContentEditable ||
       target?.closest?.("input, textarea, select, [contenteditable='true']")
     );
-  const hasOpenDialog = () =>
+  const hasOpenDialog = () => Boolean(byId("px-command-dialog")?.open) ||
     ["modal-overlay", "activity-drawer", "settings-drawer"].some((id) => {
       const element = byId(id);
       return element && !element.hidden;

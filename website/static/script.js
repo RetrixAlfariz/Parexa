@@ -1658,13 +1658,131 @@ const deleteConversation = async (id, label = "") => {
   }
 };
 
+// Chat folders organize existing IDs locally; they do not change server history.
+const chatFolderStorageKey = "parexa.chat-folders.v1";
+const readChatFolders = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(chatFolderStorageKey) || "null");
+    const seen = new Set();
+    const folders = (Array.isArray(stored?.folders) ? stored.folders : []).filter((folder) => {
+      if (!folder || typeof folder.id !== "string" || typeof folder.name !== "string" || !folder.name.trim() || seen.has(folder.id)) return false;
+      seen.add(folder.id);
+      return true;
+    }).map((folder) => ({ id: folder.id, name: folder.name.trim().slice(0, 80), collapsed: Boolean(folder.collapsed), parentId: typeof folder.parentId === "string" ? folder.parentId : null }));
+    const byId = new Map(folders.map((folder) => [folder.id, folder]));
+    for (const folder of folders) {
+      if (!byId.has(folder.parentId) || folder.parentId === folder.id) folder.parentId = null;
+      const chain = new Set([folder.id]);
+      let parent = byId.get(folder.parentId);
+      while (parent) {
+        if (chain.has(parent.id)) { folder.parentId = null; break; }
+        chain.add(parent.id);
+        parent = byId.get(parent.parentId);
+      }
+    }
+    const assignments = Object.fromEntries(Object.entries(stored?.assignments && typeof stored.assignments === "object" ? stored.assignments : {})
+      .filter(([id, folder]) => id && typeof folder === "string" && seen.has(folder)));
+    return { folders, assignments };
+  } catch {
+    return { folders: [], assignments: {} };
+  }
+};
+const chatFolders = readChatFolders();
+const saveChatFolders = () => {
+  try {
+    localStorage.setItem(chatFolderStorageKey, JSON.stringify(chatFolders));
+    return true;
+  } catch {
+    showToast({ title: "Folder not saved", detail: "Browser storage is unavailable. Changes will last only for this page session.", status: "error" });
+    return false;
+  }
+};
+const makeFolderAction = (label, icon, action) => {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "chat-folder-action";
+  button.title = label;
+  button.setAttribute("aria-label", label);
+  const mark = document.createElement("span");
+  mark.className = "studio-icon icon-" + icon;
+  mark.setAttribute("aria-hidden", "true");
+  button.appendChild(mark);
+  button.addEventListener("click", action);
+  return button;
+};
+const chatFolderPath = (folder) => {
+  const names = [folder.name];
+  let parent = chatFolders.folders.find((entry) => entry.id === folder.parentId);
+  while (parent) {
+    names.unshift(parent.name);
+    parent = chatFolders.folders.find((entry) => entry.id === parent.parentId);
+  }
+  return names.join(" / ");
+};
+const orderedChatFolders = () => {
+  const result = [];
+  const pending = chatFolders.folders.filter((folder) => !folder.parentId).reverse();
+  while (pending.length) {
+    const folder = pending.pop();
+    result.push(folder);
+    pending.push(...chatFolders.folders.filter((entry) => entry.parentId === folder.id).reverse());
+  }
+  return result;
+};
+const changeFolderName = async (folder = null, parentId = null) => {
+  const name = await openPromptModal({
+    title: folder ? "Rename folder" : parentId ? "New subfolder" : "New folder",
+    message: "Organize chats in this browser. Use a name up to 80 characters.",
+    placeholder: "Folder name",
+    initialValue: folder?.name || "",
+    confirmLabel: folder ? "Rename" : "Create",
+  });
+  if (!name?.trim()) return;
+  if (name.trim().length > 80) {
+    showToast({ title: "Name too long", detail: "Use a folder name up to 80 characters.", status: "error" });
+    return;
+  }
+  if (chatFolders.folders.some((entry) => entry !== folder && entry.parentId === (folder ? folder.parentId : parentId) && entry.name.toLowerCase() === name.trim().toLowerCase())) {
+    showToast({ title: "Folder name already used", detail: "Choose a different name.", status: "error" });
+    return;
+  }
+  if (folder) folder.name = name.trim();
+  else {
+    chatFolders.folders.push({ id: crypto.randomUUID(), name: name.trim(), collapsed: false, parentId });
+    const parent = chatFolders.folders.find((entry) => entry.id === parentId);
+    if (parent) parent.collapsed = false;
+  }
+  saveChatFolders();
+  renderConversationList(conversations, conversationId);
+  document.getElementById("chat-folder-new")?.focus();
+};
+const removeChatFolder = async (folder) => {
+  const confirmed = await openConfirmModal({
+    title: `Remove "${folder.name}"?`,
+    message: "Chats in this folder will move to Unfiled. Subfolders and their chats will be kept and moved up one level.",
+    confirmLabel: "Remove folder",
+    cancelLabel: "Cancel",
+  });
+  if (!confirmed) return;
+  for (const child of chatFolders.folders) {
+    if (child.parentId === folder.id) child.parentId = folder.parentId;
+  }
+  chatFolders.folders = chatFolders.folders.filter((item) => item.id !== folder.id);
+  for (const [id, folderId] of Object.entries(chatFolders.assignments)) {
+    if (folderId === folder.id) delete chatFolders.assignments[id];
+  }
+  saveChatFolders();
+  renderConversationList(conversations, conversationId);
+  document.getElementById("chat-folder-new")?.focus();
+};
+
 const renderConversationList = (items, activeId = conversationId) => {
   if (!conversationContainer) {
     return;
   }
   conversationContainer.innerHTML = "";
 
-  if (!Array.isArray(items) || !items.length) {
+  if ((!Array.isArray(items) || !items.length) && !chatFolders.folders.length) {
     if (conversationEmptyState) {
       conversationEmptyState.hidden = false;
     }
@@ -1674,7 +1792,68 @@ const renderConversationList = (items, activeId = conversationId) => {
   if (conversationEmptyState) {
     conversationEmptyState.hidden = true;
   }
-  items.forEach((item) => {
+  const visibleItems = Array.isArray(items) ? items : [];
+  const groups = new Map();
+  const folderGroups = new Map();
+  orderedChatFolders().forEach((folder) => {
+    const group = document.createElement("section");
+    group.className = "chat-folder";
+    group.dataset.folderId = folder.id;
+    const heading = document.createElement("div");
+    heading.className = "chat-folder-heading";
+    const list = document.createElement("div");
+    list.className = "chat-folder-items";
+    list.hidden = folder.collapsed;
+    const count = visibleItems.filter((item) => {
+      let owner = chatFolders.folders.find((entry) => entry.id === chatFolders.assignments[item?.conversation_id]);
+      while (owner) {
+        if (owner.id === folder.id) return true;
+        owner = chatFolders.folders.find((entry) => entry.id === owner.parentId);
+      }
+      return false;
+    }).length;
+    const toggle = makeFolderAction(chatFolderPath(folder), "folder", () => {
+      folder.collapsed = !folder.collapsed;
+      list.hidden = folder.collapsed;
+      toggle.setAttribute("aria-expanded", String(!folder.collapsed));
+      saveChatFolders();
+    });
+    toggle.classList.add("chat-folder-toggle");
+    toggle.setAttribute("aria-expanded", String(!folder.collapsed));
+    const label = document.createElement("span");
+    label.className = "chat-folder-name";
+    label.textContent = folder.name;
+    const total = document.createElement("span");
+    total.className = "chat-folder-count";
+    total.textContent = String(count);
+    toggle.append(label, total);
+    heading.append(toggle,
+      makeFolderAction("New subfolder in " + chatFolderPath(folder), "folder-plus", () => changeFolderName(null, folder.id)),
+      makeFolderAction("Rename " + chatFolderPath(folder), "edit-3", () => changeFolderName(folder)),
+      makeFolderAction("Remove " + chatFolderPath(folder), "trash-2", () => removeChatFolder(folder)));
+    group.append(heading, list);
+    if (!count && !chatFolders.folders.some((entry) => entry.parentId === folder.id)) {
+      const empty = document.createElement("p");
+      empty.className = "chat-folder-empty";
+      empty.textContent = "Move a chat here using its folder control.";
+      list.appendChild(empty);
+    }
+    folderGroups.set(folder.id, group);
+    groups.set(folder.id, list);
+  });
+  orderedChatFolders().forEach((folder) => {
+    (groups.get(folder.parentId) || conversationContainer).appendChild(folderGroups.get(folder.id));
+  });
+  const unfiled = document.createElement("div");
+  unfiled.className = "chat-unfiled";
+  if (chatFolders.folders.length) {
+    const label = document.createElement("p");
+    label.className = "chat-folder-unfiled-label";
+    label.textContent = "Unfiled";
+    unfiled.appendChild(label);
+  }
+  conversationContainer.appendChild(unfiled);
+  visibleItems.forEach((item) => {
     const id = item?.conversation_id;
     if (!id) {
       return;
@@ -1710,7 +1889,7 @@ const renderConversationList = (items, activeId = conversationId) => {
     }
 
     button.addEventListener("click", () => {
-      if (id !== conversationId) {
+      if (id !== conversationId || !chatLog?.querySelector(".message:not(.typing)")) {
         handleConversationSelect(id);
       }
     });
@@ -1726,11 +1905,44 @@ const renderConversationList = (items, activeId = conversationId) => {
       deleteConversation(id, item.title || "Percakapan");
     });
 
-    entry.appendChild(button);
-    entry.appendChild(deleteButton);
-    conversationContainer.appendChild(entry);
+    const move = document.createElement("label");
+    move.className = "chat-folder-move";
+    move.title = "Move chat to folder";
+    const icon = document.createElement("span");
+    icon.className = "studio-icon icon-folder";
+    icon.setAttribute("aria-hidden", "true");
+    const select = document.createElement("select");
+    select.setAttribute("aria-label", "Move " + (item.title || "chat") + " to folder");
+    [{ id: "", name: "Unfiled" }, ...orderedChatFolders()].forEach((folder) => {
+      const option = document.createElement("option");
+      option.value = folder.id;
+      option.textContent = folder.id ? chatFolderPath(folder) : folder.name;
+      select.appendChild(option);
+    });
+    select.value = chatFolders.assignments[id] || "";
+    select.addEventListener("change", () => {
+      if (select.value) {
+        chatFolders.assignments[id] = select.value;
+        const folder = chatFolders.folders.find((entry) => entry.id === select.value);
+        let ancestor = folder;
+        while (ancestor) {
+          ancestor.collapsed = false;
+          ancestor = chatFolders.folders.find((entry) => entry.id === ancestor.parentId);
+        }
+      } else delete chatFolders.assignments[id];
+      saveChatFolders();
+      renderConversationList(conversations, conversationId);
+      conversationContainer.querySelectorAll(".conversation-item").forEach((element) => {
+        if (element.dataset.conversationId === id) element.focus();
+      });
+    });
+    move.append(icon, select);
+    entry.append(button, move, deleteButton);
+    (groups.get(chatFolders.assignments[id]) || unfiled).appendChild(entry);
   });
 };
+
+document.getElementById("chat-folder-new")?.addEventListener("click", () => changeFolderName());
 
 const setConversationId = (value) => {
   conversationId = value ? String(value) : "";
@@ -2044,7 +2256,9 @@ const setSidebarHidden = (isHidden) => {
   if (sidebar) {
     sidebar.setAttribute("aria-hidden", isHidden ? "true" : "false");
   }
-  localStorage.setItem("parexaSidebarHidden", isHidden ? "true" : "false");
+  if (!window.matchMedia("(max-width: 760px)").matches) {
+    localStorage.setItem("parexaSidebarHidden", isHidden ? "true" : "false");
+  }
 };
 
 const initialSidebarHidden =

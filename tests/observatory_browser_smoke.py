@@ -40,8 +40,8 @@ class Handler(SimpleHTTPRequestHandler):
         if path == "/":
             text = (WEBSITE / "templates" / "index.html").read_text(encoding="utf-8")
             text = re.sub(
-                r"\{\{\s*url_for\('static', filename='([^']+)'(?:, v='[^']*')?\)\s*\}\}",
-                lambda match: "/static/" + match.group(1),
+                r"\{\{\s*url_for\('static', filename='([^']+)'(?:, v='([^']*)')?\)\s*\}\}",
+                lambda match: "/static/" + match.group(1) + ("?v=" + match.group(2) if match.group(2) else ""),
                 text,
             )
             data = text.encode("utf-8")
@@ -52,10 +52,19 @@ class Handler(SimpleHTTPRequestHandler):
             self.wfile.write(data)
             return
         if path == "/api/conversations":
-            self.send_json(200, {"conversations": []})
+            self.send_json(200, {"conversations": [
+                {"conversation_id": "fixture-history-1", "title": "From idea to first steps", "preview": "A practical plan"},
+                {"conversation_id": "fixture-history-2", "title": "Compare research approaches", "preview": "Two perspectives"}
+            ]})
+            return
+        if path.startswith("/api/conversations/fixture-history-"):
+            self.send_json(200, {"history": [
+                {"role": "user", "text": "Help me turn a rough idea into a practical plan."},
+                {"role": "model", "text": "The most useful starting point is to get clear on the problem you're solving, who it's for, and what success looks like. From there, we can structure a plan that moves from validation to execution.\n\nHere's a simple framework to get started:\n\n1. **Clarify the opportunity**\n\n   Define the problem, the audience, and the value you want to deliver. Be specific about the need you're addressing and how you'll know it matters.\n\n2. **Validate and refine**\n\n   Gather evidence through research, conversations, or lightweight tests. Use what you learn to refine assumptions and identify risks.\n\n3. **Plan your next steps**\n\n   Outline focused actions, set priorities, and define early milestones. Keep it lean, test as you go, and adapt based on feedback.\n\nTell me a bit more about your idea, or choose a specific area you'd like to dig into first."}
+            ]})
             return
         if path == "/api/health/embedding":
-            self.send_json(200, {"provider": "lmstudio", "enabled": True, "healthy": True})
+            self.send_json(200, {"provider": "lmstudio", "enabled": True, "healthy": True, "status": "ok"})
             return
         if path == "/api/models":
             self.send_json(200, {
@@ -114,7 +123,7 @@ def main():
             page.goto(url, wait_until="domcontentloaded")
             page.locator("#ob-home").wait_for(state="visible", timeout=15000)
             assert page.locator(".ob-action-card").count() == 4
-            assert page.locator("#ob-inspector").is_visible()
+            assert not page.locator("#ob-inspector").is_visible()
             assert page.locator("#workspace-mode").inner_text() == "STANDARD"
             assert page.locator(".new-chat-btn").is_visible()
             assert page.locator("#user-input").is_visible()
@@ -124,27 +133,76 @@ def main():
             )
             assert "fixture-local-chat" in page.locator("#ob-composer-model").inner_text()
             assert "Upgrade to Pro" not in page.locator("body").inner_text()
+            page.keyboard.press("Control+k")
+            page.locator("#px-command-dialog").wait_for(state="visible")
+            page.get_by_label("Search commands", exact=True).fill("notes")
+            page.keyboard.press("Enter")
+            assert not page.locator("#px-command-dialog").is_visible()
+            assert page.evaluate("document.activeElement.id") == "ob-scratchpad"
+            page.locator("#ob-inspector-close").click()
+            page.keyboard.press("Control+k")
+            page.get_by_label("Search commands", exact=True).fill("no-such-command")
+            assert page.locator(".px-command-empty").is_visible()
+            page.keyboard.press("Escape")
+            assert not page.locator("#px-command-dialog").is_visible()
             page.keyboard.press("/")
             assert page.evaluate("document.activeElement.id") == "user-input"
             page.locator("#agent-genesis").click()
             page.wait_for_function("document.querySelector('#workspace-mode')?.textContent === 'GENESIS'")
             page.locator("#agent-default").click()
             page.wait_for_function("document.querySelector('#workspace-mode')?.textContent === 'STANDARD'")
+            page.locator(".conversation-item", has_text="From idea to first steps").click()
+            page.locator(".message.model").wait_for(state="visible")
+            assert page.locator("#studio-conversation-title").inner_text() == "From idea to first steps"
+            page.reload()
+            page.locator(".conversation-item", has_text="From idea to first steps").click()
+            page.locator(".message.model").wait_for(state="visible")
+            page.locator(".new-chat-btn").click()
+            page.locator("#ob-model-button").click()
+            assert page.locator("#ob-inspector").is_visible()
+            page.locator("#ob-chat-model-select").select_option("-1")
+            assert page.locator("#studio-model-state").inner_text() == "No model connected"
+            page.locator("#ob-chat-model-select").select_option("0")
+            page.locator("#ob-inspector-close").click()
+            page.locator("#sidebar-settings-btn").click()
+            page.get_by_role("button", name="Dark", exact=True).click()
+            assert page.locator("html").get_attribute("data-theme") == "dark"
+            page.get_by_role("button", name="Light", exact=True).click()
+            page.keyboard.press("Escape")
+            assert not page.locator("#settings-drawer").is_visible()
+            assert "OBSERVATORY" not in page.locator(".sidebar-brand").inner_text()
+            page.locator("#chat-folder-new").click()
+            page.locator("#modal-input").fill("Research")
+            page.get_by_role("button", name="Create", exact=True).click()
+            page.get_by_label("Move From idea to first steps to folder", exact=True).select_option(label="Research")
+            page.get_by_role("button", name="Research", exact=True).click()
+            page.reload()
+            assert page.get_by_role("button", name="Research", exact=True).get_attribute("aria-expanded") == "false"
+            page.get_by_role("button", name="Rename Research", exact=True).click()
+            assert page.locator("#modal-input").input_value() == "Research"
+            page.locator("#modal-input").fill("Research notes")
+            page.get_by_role("button", name="Rename", exact=True).click()
+            page.get_by_role("button", name="Research notes", exact=True).click()
+            assert page.locator(".chat-folder .conversation-item").count() == 1
+            page.get_by_role("button", name="Remove Research notes", exact=True).click()
+            page.get_by_role("button", name="Remove folder", exact=True).click()
+            assert page.locator(".chat-folder").count() == 0
+            assert page.locator(".conversation-item").count() == 2
             page.screenshot(path=str(artifacts / "parexa-observatory-desktop.png"), full_page=True)
 
-            page.locator('[data-ob-tab="notes"]').click()
+            page.locator('[data-ob-action="notes"]').click()
             pad = page.locator("#ob-scratchpad")
             pad.fill("Browser-local note")
             page.reload()
             page.locator("#ob-home").wait_for(state="visible")
-            page.locator('[data-ob-tab="notes"]').click()
+            page.locator('[data-ob-action="notes"]').click()
             assert page.locator("#ob-scratchpad").input_value() == "Browser-local note"
             page.wait_for_function(
                 "window.parexaChatModelSelection?.model === 'fixture-local-chat'",
                 timeout=15000,
             )
 
-            page.locator('[data-ob-tab="sources"]').click()
+            page.locator('[data-ob-action="sources"]').click()
             page.locator("#file-upload").set_input_files({
                 "name": "sample.txt",
                 "mimeType": "text/plain",
@@ -158,6 +216,10 @@ def main():
             assert Handler.last_chat_payload.get("model_provider") == "lmstudio"
             assert Handler.last_chat_payload.get("model") == "fixture-local-chat"
             assert "lmstudio / fixture-local-chat" in page.locator("#ob-provider").inner_text().lower()
+            page.locator("#ob-inspector-close").click()
+            assert not page.locator("#ob-inspector").is_visible()
+            page.locator(".source-chip").click()
+            assert page.locator("#ob-inspector").is_visible()
             page.screenshot(path=str(artifacts / "parexa-observatory-chat.png"), full_page=True)
 
             page.locator(".new-chat-btn").click()
@@ -168,10 +230,18 @@ def main():
             page.set_viewport_size({"width": 390, "height": 844})
             page.reload()
             page.locator("#ob-home").wait_for(state="visible", timeout=15000)
+            assert not page.locator("#ob-inspector").is_visible()
+            assert not page.locator(".sidebar").is_visible()
+            page.locator("#sidebar-toggle-btn").click()
+            assert page.locator(".sidebar").is_visible()
+            page.keyboard.press("Escape")
+            assert not page.locator(".sidebar").is_visible()
             page.locator("#ob-inspector-toggle").click()
             assert "ob-inspector-open" in (page.locator(".app-shell").get_attribute("class") or "")
             page.locator("#ob-inspector-close").click()
             assert "ob-inspector-open" not in (page.locator(".app-shell").get_attribute("class") or "")
+            assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+            assert page.locator("#chat-form").bounding_box()["y"] + page.locator("#chat-form").bounding_box()["height"] <= 844
             page.screenshot(path=str(artifacts / "parexa-observatory-mobile.png"), full_page=True)
 
             assert not errors, f"Uncaught browser JavaScript errors: {errors}"
