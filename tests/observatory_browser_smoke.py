@@ -115,6 +115,7 @@ def main():
             page.locator("#ob-home").wait_for(state="visible", timeout=15000)
             assert page.locator(".ob-action-card").count() == 4
             assert page.locator("#ob-inspector").is_visible()
+            assert page.locator("#workspace-mode").inner_text() == "STANDARD"
             assert page.locator(".new-chat-btn").is_visible()
             assert page.locator("#user-input").is_visible()
             page.wait_for_function(
@@ -123,6 +124,12 @@ def main():
             )
             assert "fixture-local-chat" in page.locator("#ob-composer-model").inner_text()
             assert "Upgrade to Pro" not in page.locator("body").inner_text()
+            page.keyboard.press("/")
+            assert page.evaluate("document.activeElement.id") == "user-input"
+            page.locator("#agent-genesis").click()
+            page.wait_for_function("document.querySelector('#workspace-mode')?.textContent === 'GENESIS'")
+            page.locator("#agent-default").click()
+            page.wait_for_function("document.querySelector('#workspace-mode')?.textContent === 'STANDARD'")
             page.screenshot(path=str(artifacts / "parexa-observatory-desktop.png"), full_page=True)
 
             page.locator('[data-ob-tab="notes"]').click()

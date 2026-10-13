@@ -1,0 +1,63 @@
+/* Compact live-status ribbon. Forward-port of the legacy workspace HUD,
+   tailored to the active cyan Observatory system instead of the archived theme. */
+.workspace-context {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:6px 14px;
+  min-height:36px;
+  padding:9px 1px 8px;
+  border-bottom:1px solid var(--ob-line);
+  color:var(--ob-muted);
+  font:600 10px/1.3 "Manrope","Segoe UI",sans-serif;
+}
+.workspace-context-label {
+  color:var(--ob-accent);
+  letter-spacing:.13em;
+  font-weight:800;
+  font-size:9px;
+  white-space:nowrap;
+}
+.workspace-context-item { display:inline-flex;gap:5px;align-items:center;white-space:nowrap; }
+.workspace-context-item strong {
+  color:var(--ob-ink);
+  font-weight:800;
+  font-size:9.5px;
+  max-width:180px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.workspace-context-item strong[data-state="active"],
+.workspace-context-item strong[data-state="ok"] { color:var(--ob-accent); }
+.workspace-context-item strong[data-state="error"] { color:#bd4e62; }
+.workspace-shortcuts {
+  margin-left:auto;
+  color:var(--ob-muted);
+  white-space:nowrap;
+  font-weight:500;
+  font-size:9px;
+}
+.workspace-shortcuts kbd {
+  font:700 9px "Manrope","Segoe UI",sans-serif;
+  color:var(--ob-ink);
+  border:1px solid var(--ob-line);
+  border-radius:4px;
+  padding:2px 4px;
+  background:var(--ob-surface-soft);
+}
+@media(max-width:1280px) {
+  .workspace-context {gap:6px 11px;}
+  .workspace-shortcuts {display:none;}
+}
+@media(max-width:700px) {
+  .workspace-context {
+    flex-wrap:nowrap;
+    overflow-x:auto;
+    scrollbar-width:thin;
+    gap:5px 12px;
+  }
+  .workspace-context-label {display:none;}
+}
+@media(prefers-reduced-motion:reduce){
+  .workspace-context * { transition:none!important; }
+}

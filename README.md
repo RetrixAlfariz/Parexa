@@ -87,3 +87,7 @@ GitHub Actions run pure-stdlib routing tests and a real HTTP integration using a
 ## Origin
 
 Originally the Sanber Code Bootcamp Batch 8 final project. Continued development focuses on an evidence-first, compute-conscious research application.
+
+## Branch consolidation and workstation controls
+
+The archived architecture study is at [Parexa 2.0 modernization](docs/PAREXA_2_MODERNIZATION.md). The active Observatory UI keeps the previous workspace experiment's functional shortcuts without loading its conflicting purple theme: `/` focuses the composer, `Alt+N` starts a new conversation, `Alt+Shift+B` toggles the sidebar, and `Alt+Shift+P` opens activity. The runtime ribbon reflects the current reasoning mode, web toggle, embedding monitor and request state. Unexpected API failures return generic error messages while full details remain in server logs.

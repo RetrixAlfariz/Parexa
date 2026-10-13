@@ -75,6 +75,19 @@ class ObservatoryStructureTests(unittest.TestCase):
         self.assertIn("MutationObserver", self.javascript)
         self.assertEqual(self.css.count("{"), self.css.count("}"))
 
+    def test_workspace_live_status_and_keyboard_shortcuts(self) -> None:
+        for identifier in (
+            "workspace-mode", "workspace-browsing", "workspace-embedding",
+            "workspace-run-status",
+        ):
+            self.assertIn(identifier, self.parser.ids)
+        self.assertIn("filename='workspace.js'", self.html)
+        workspace = (STATIC / "workspace.js").read_text(encoding="utf-8")
+        self.assertIn("event.altKey", workspace)
+        self.assertIn('key === "/"', workspace)
+        self.assertIn("MutationObserver", workspace)
+        self.assertIn("css/workspace-status.css", (STATIC / "styles.css").read_text(encoding="utf-8"))
+
     def test_starters_use_actual_handlers_not_dead_links(self) -> None:
         actions = set(re.findall(r'data-ob-action="([^"]+)"', self.html))
         for action in ("home", "sources", "notes", "activity",
