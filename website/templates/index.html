@@ -99,6 +99,15 @@
         </div>
       </header>
 
+      <div class="workspace-context" role="status" aria-label="Live execution context">
+        <span class="workspace-context-label">PX / RUNTIME</span>
+        <span class="workspace-context-item">MODE <strong id="workspace-mode">STANDARD</strong></span>
+        <span class="workspace-context-item">WEB <strong id="workspace-browsing">OFF</strong></span>
+        <span class="workspace-context-item">EMBED <strong id="workspace-embedding">CHECKING</strong></span>
+        <span class="workspace-context-item">STATE <strong id="workspace-run-status" aria-live="polite">READY</strong></span>
+        <span class="workspace-shortcuts"><kbd>/</kbd> FOCUS · <kbd>ALT+N</kbd> NEW</span>
+      </div>
+
       <section id="ob-home" class="ob-home" aria-labelledby="ob-home-title">
         <div class="ob-hero">
           <div class="ob-hero-art" aria-hidden="true"><span class="ob-hero-ring"></span><span class="ob-hero-beam"></span><span class="ob-hero-horizon"></span></div>
@@ -514,6 +523,7 @@
   <script src="{{ url_for('static', filename='script.js', v='8') }}" defer></script>
   <script src="{{ url_for('static', filename='observatory.js', v='1') }}" defer></script>
   <script src="{{ url_for('static', filename='model_selector.js', v='1') }}" defer></script>
+  <script src="{{ url_for('static', filename='workspace.js', v='2') }}" defer></script>
 </body>
 
 </html>

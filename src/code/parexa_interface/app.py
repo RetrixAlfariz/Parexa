@@ -94,7 +94,9 @@ def index() -> str:
 
 @app.route("/api/chat", methods=["POST"])
 async def chat() -> Any:
-    payload: Dict[str, Any] = request.get_json(silent=True) or {}
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"error": "Expected a JSON object.", "code": "invalid_payload"}), 400
     try:
         result = await handle_chat_async(payload)
         return jsonify(result)
@@ -102,9 +104,9 @@ async def chat() -> Any:
         return jsonify({"error": str(exc), "code": "backend_unavailable"}), 503
     except ChatServiceError as exc:
         return jsonify({"error": str(exc)}), 400
-    except Exception as exc:  # pragma: no cover - defensive
-        logger.exception("Kesalahan tidak terduga saat memproses chat")
-        return jsonify({"error": str(exc)}), 500
+    except Exception:  # pragma: no cover - defensive
+        logger.exception("Unexpected failure while processing chat")
+        return jsonify({"error": "Internal server error. Check server logs."}), 500
 
 
 @app.route("/api/upload", methods=["POST"])
@@ -308,13 +310,13 @@ async def upload_file() -> Any:
         )
         fail_upload_progress(upload_tracking_id, message=message)
         return jsonify({"error": message}), 503
-    except Exception as exc:
+    except Exception:
         logger.exception("Error processing file")
         fail_upload_progress(
             upload_tracking_id,
-            message=str(exc) or "Error processing upload",
+            message="Upload processing failed. Check server logs.",
         )
-        return jsonify({"error": str(exc)}), 500
+        return jsonify({"error": "Upload processing failed. Check server logs."}), 500
     finally:
         try:
             if file_path.exists():
@@ -338,9 +340,9 @@ def upload_progress(upload_id: str) -> Any:
 def embedding_health() -> Any:
     try:
         return jsonify(ingestion_service.get_embedding_health_status())
-    except Exception as exc:
+    except Exception:
         logger.exception("Failed to resolve embedding health status")
-        return jsonify({"error": str(exc)}), 500
+        return jsonify({"error": "Unable to retrieve embedding health."}), 500
 
 
 @app.route("/api/conversations/<conversation_id>", methods=["GET"])
@@ -365,7 +367,7 @@ def delete_conversation_route(conversation_id: str) -> Any:
 
 @app.route("/api/conversations", methods=["GET"])
 def conversations_list() -> Any:
-    limit = request.args.get("limit", type=int) or 50
+    limit = max(1, min(request.args.get("limit", type=int) or 50, 200))
     result = get_conversation_list(limit)
     return jsonify(result)
 
