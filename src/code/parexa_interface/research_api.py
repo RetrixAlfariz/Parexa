@@ -4,7 +4,9 @@ The research vault is local-only. Its storage never depends on AI model uptime.
 """
 from __future__ import annotations
 
+import os
 import sqlite3
+from urllib.parse import urlsplit
 from typing import Any
 
 from flask import Blueprint, jsonify, request, send_file
@@ -14,6 +16,24 @@ from .storage.research_store import ResearchStore
 
 bp = Blueprint("research_os", __name__, url_prefix="/api/research")
 store = ResearchStore(settings.runtime_dir / "research")
+
+
+@bp.before_request
+def block_cross_origin_mutations() -> Any:
+    """Prevent other websites from using a researcher's loopback server as a write target."""
+    if request.method not in ("POST", "PATCH", "DELETE"):
+        return None
+    origin = request.headers.get("Origin")
+    if origin:
+        supplied = urlsplit(origin)
+        expected = urlsplit(request.host_url)
+        if (supplied.scheme, supplied.netloc) != (expected.scheme, expected.netloc):
+            return jsonify({"error": "Cross-origin research writes are not allowed.",
+                            "code": "cross_origin_write"}), 403
+    elif request.headers.get("Sec-Fetch-Site", "") not in ("", "same-origin", "none"):
+        return jsonify({"error": "Cross-site research writes are not allowed.",
+                        "code": "cross_origin_write"}), 403
+    return None
 
 
 def _body() -> dict[str, Any]:
@@ -52,7 +72,7 @@ def system() -> Any:
     payload["runtime"] = {
         "chat_provider": settings.chat_provider,
         "embedding_provider": settings.embedding_provider,
-        "local_only_http": True,
+        "local_only_http": os.getenv("PAREXA_HOST", "127.0.0.1") in ("127.0.0.1", "localhost", "::1"),
         "cloud_model_selection_enabled": settings.allow_cloud_model_selection,
         "note": "Provider health and actual inference usage are not implied by configuration."
     }
