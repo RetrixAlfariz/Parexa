@@ -78,7 +78,11 @@
     if (dialog.open && event.key === 'Escape') {
       event.preventDefault();
       event.stopImmediatePropagation();
+      restoreFocus = false;
       dialog.close();
+      // Escape is a deliberate return to the chat workstation, not the hidden
+      // search field or a previously closed inspector control.
+      byId('user-input')?.focus();
       return;
     }
     if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'k') return;
