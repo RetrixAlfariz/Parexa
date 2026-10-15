@@ -14,6 +14,7 @@
   };
   const commands = [
     { name:'New conversation', hint:'Alt N', run:() => click('.new-chat-btn') },
+    { name:'Open Research OS', hint:'Projects / Vault / Lab', run:() => window.location.assign('/research') },
     { name:'Focus composer', hint:'/', run:() => byId('user-input')?.focus() },
     { name:'Choose model', hint:'Runtime', run:() => byId('ob-model-button')?.click() },
     { name:'Open sources', hint:'Research', run:() => click('[data-ob-action="sources"]') },
