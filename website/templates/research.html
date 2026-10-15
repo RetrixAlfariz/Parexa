@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101923">
+  <title>Parexa Research OS · Observatory</title>
+  <link rel="icon" href="{{ url_for('static', filename='images/parexa-mark.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/research-os.css', v='1') }}">
+  <script src="{{ url_for('static', filename='research-os.js', v='1') }}" defer></script>
+</head>
+<body>
+  <div class="rx-app">
+    <aside class="rx-rail" id="rx-rail">
+      <div class="rx-brand">
+        <div class="rx-brand-mark"><img src="{{ url_for('static', filename='images/parexa-mark.svg') }}" alt="" width="31" height="37"></div>
+        <div><strong>PAREXA</strong><span>RESEARCH OPERATING SYSTEM</span></div>
+      </div>
+      <div class="rx-rail-divider"></div>
+      <div class="rx-workspace-pick">
+        <label for="rx-scope">ACTIVE RESEARCH SCOPE</label>
+        <select id="rx-scope" aria-label="Filter research workspace by project">
+          <option value="">All research projects</option>
+        </select>
+      </div>
+      <nav class="rx-navigation" aria-label="Research workspace">
+        <span class="rx-nav-heading">DISCOVER</span>
+        <button data-view="overview" class="rx-nav-item is-active" type="button"><span class="rx-nav-icon">◈</span> Observatory <span class="rx-nav-key">01</span></button>
+        <button data-view="projects" class="rx-nav-item" type="button"><span class="rx-nav-icon">▦</span> Projects <span class="rx-nav-key">02</span></button>
+        <button data-view="library" class="rx-nav-item" type="button"><span class="rx-nav-icon">▤</span> Source vault <span class="rx-nav-key">03</span></button>
+        <span class="rx-nav-heading">INVESTIGATE</span>
+        <button data-view="experiments" class="rx-nav-item" type="button"><span class="rx-nav-icon">⌁</span> Experiments <span class="rx-nav-key">04</span></button>
+        <button data-view="evidence" class="rx-nav-item" type="button"><span class="rx-nav-icon">◇</span> Evidence ledger <span class="rx-nav-key">05</span></button>
+        <button data-view="notes" class="rx-nav-item" type="button"><span class="rx-nav-icon">≡</span> Notebook <span class="rx-nav-key">06</span></button>
+        <button data-view="tasks" class="rx-nav-item" type="button"><span class="rx-nav-icon">☑</span> Research queue <span class="rx-nav-key">07</span></button>
+        <span class="rx-nav-heading">INFRASTRUCTURE</span>
+        <button data-view="system" class="rx-nav-item" type="button"><span class="rx-nav-icon">◎</span> Systems & storage <span class="rx-nav-key">08</span></button>
+      </nav>
+      <div class="rx-rail-bottom">
+        <a href="/" class="rx-assistant-link"><span class="rx-nav-icon">✳</span><span>Open AI assistant<small>Chat · RAG · Genesis</small></span><span aria-hidden="true">↗</span></a>
+        <div class="rx-integrity"><span class="rx-status-dot"></span><span>LOCAL WORKSPACE<br><small>Source-first. Byte-exact.</small></span></div>
+        <p class="rx-rail-version">PAREXA LAB / RESEARCH OS V1</p>
+      </div>
+    </aside>
+    <div id="rx-mobile-backdrop" class="rx-backdrop" hidden></div>
+    <div class="rx-main">
+      <header class="rx-toolbar">
+        <button id="rx-nav-toggle" class="rx-nav-toggle" type="button" aria-label="Open navigation">☰</button>
+        <div class="rx-path">WORKSTATION <span>/</span> <strong id="rx-path-label">OBSERVATORY</strong></div>
+        <div class="rx-top-actions">
+          <div class="rx-search-wrap">
+            <label class="rx-search" for="rx-search"><span aria-hidden="true">⌕</span><input id="rx-search" type="search" autocomplete="off" placeholder="Find research objects..." aria-label="Search all research"><kbd>/</kbd></label>
+            <div id="rx-search-results" class="rx-search-results" hidden></div>
+          </div>
+          <button class="rx-button rx-button-primary" type="button" data-new="project"><span>+</span> New project</button>
+        </div>
+      </header>
+      <main class="rx-content" id="rx-content">
+        <section class="rx-screen" data-screen="overview" aria-labelledby="rx-home-heading">
+          <div class="rx-hero">
+            <div class="rx-hero-copy"><p class="rx-eyebrow"><span class="rx-eyebrow-line"></span> AN INTELLIGENCE WORKSPACE, NOT JUST A CHAT WINDOW</p>
+              <h1 id="rx-home-heading">Research needs<br><em>room to think.</em></h1>
+              <p>Organize a question, preserve every original source, test a hypothesis, and trace your conclusions. All from your own machine.</p>
+              <div class="rx-hero-actions"><button class="rx-button rx-button-white" type="button" data-new="document">+ Archive a source</button><button class="rx-button rx-button-ghost" type="button" data-view="experiments">Open research lab <span aria-hidden="true">↗</span></button></div>
+            </div>
+            <div class="rx-orbit" aria-hidden="true"><div class="rx-orbit-ring rx-orbit-outer"></div><div class="rx-orbit-ring rx-orbit-mid"></div><div class="rx-orbit-ring rx-orbit-inner"></div><div class="rx-orbit-core">P</div><div class="rx-orbit-node rx-orbit-a"></div><div class="rx-orbit-node rx-orbit-b"></div><div class="rx-orbit-label rx-orbit-label-a">HYPOTHESIS</div><div class="rx-orbit-label rx-orbit-label-b">EVIDENCE</div><div class="rx-orbit-label rx-orbit-label-c">SYNTHESIS</div><div class="rx-orbit-grid"></div></div>
+          </div>
+          <div class="rx-section-label"><span>WORKSPACE TELEMETRY</span><small>Derived from real research records</small></div>
+          <div id="rx-metrics" class="rx-metrics"></div>
+          <div class="rx-dashboard-grid">
+            <article class="rx-panel rx-panel-projects"><div class="rx-panel-heading"><div><p class="rx-panel-kicker">COLLECTION 01</p><h2>Research projects</h2></div><button class="rx-text-button" type="button" data-view="projects">View all ↗</button></div><div id="rx-home-projects"></div></article>
+            <article class="rx-panel rx-panel-queue"><div class="rx-panel-heading"><div><p class="rx-panel-kicker">NEXT ACTIONS</p><h2>Research queue</h2></div><button class="rx-text-button" type="button" data-new="task">+ Task</button></div><div id="rx-home-tasks"></div></article>
+            <article class="rx-panel rx-panel-sources"><div class="rx-panel-heading"><div><p class="rx-panel-kicker">SOURCE INTEGRITY</p><h2>Recently archived</h2></div><button class="rx-text-button" type="button" data-view="library">Open vault ↗</button></div><div id="rx-home-documents"></div></article>
+            <article class="rx-panel rx-panel-pipeline"><div class="rx-panel-heading"><div><p class="rx-panel-kicker">RESEARCH METHOD</p><h2>From question to claim</h2></div></div><div class="rx-pipeline"><div><span>01</span><strong>Collect</strong><small>Original source bytes, not file names alone</small></div><div><span>02</span><strong>Investigate</strong><small>Document hypotheses, experiments and notes</small></div><div><span>03</span><strong>Verify</strong><small>Attach evidence and inspect source integrity</small></div><div><span>04</span><strong>Synthesize</strong><small>Discuss with Parexa's existing AI models</small></div></div></article>
+          </div>
+        </section>
+        <section class="rx-screen" data-screen="projects" hidden>
+          <div class="rx-page-heading"><div><p class="rx-eyebrow">RESEARCH / PROJECTS</p><h1>Research atlas</h1><p>Independent investigations, shared knowledge, and a clear research scope.</p></div><button class="rx-button rx-button-primary" type="button" data-new="project">+ Create project</button></div>
+          <div id="rx-projects" class="rx-card-grid"></div>
+        </section>
+        <section class="rx-screen" data-screen="library" hidden>
+          <div class="rx-page-heading"><div><p class="rx-eyebrow">STORAGE / PRESERVATION</p><h1>Source vault</h1><p>Persistent original documents with SHA-256 integrity checks. An archive is not automatically a searchable RAG index.</p></div><button class="rx-button rx-button-primary" type="button" data-new="document">+ Archive documents</button></div>
+          <div id="rx-library-summary" class="rx-vault-summary"></div><div id="rx-documents" class="rx-table-wrap"></div>
+        </section>
+        <section class="rx-screen" data-screen="experiments" hidden>
+          <div class="rx-page-heading"><div><p class="rx-eyebrow">INVESTIGATION / LAB</p><h1>Experiment registry</h1><p>Record hypotheses, methods, outcomes, and statuses. No fabricated model results.</p></div><button class="rx-button rx-button-primary" type="button" data-new="experiment">+ New experiment</button></div>
+          <div id="rx-experiments" class="rx-list"></div>
+        </section>
+        <section class="rx-screen" data-screen="evidence" hidden>
+          <div class="rx-page-heading"><div><p class="rx-eyebrow">RESEARCH / PROVENANCE</p><h1>Evidence ledger</h1><p>Claims stay connected to exact source documents, quotations and page labels. Confidence is researcher-assigned.</p></div><button class="rx-button rx-button-primary" type="button" data-new="evidence">+ Record evidence</button></div>
+          <div id="rx-evidence" class="rx-list"></div>
+        </section>
+        <section class="rx-screen" data-screen="notes" hidden>
+          <div class="rx-page-heading"><div><p class="rx-eyebrow">KNOWLEDGE / NOTEBOOK</p><h1>Research notebook</h1><p>Persistent notes on disk, independent from the browser scratchpad or model context.</p></div><button class="rx-button rx-button-primary" type="button" data-new="note">+ Write note</button></div>
+          <div class="rx-inline-actions"><button class="rx-button rx-button-soft" type="button" id="rx-import-scratchpad">Import old browser scratchpad</button><span>Import creates a new note; the original browser text is kept.</span></div>
+          <div id="rx-notes" class="rx-card-grid"></div>
+        </section>
+        <section class="rx-screen" data-screen="tasks" hidden>
+          <div class="rx-page-heading"><div><p class="rx-eyebrow">RESEARCH / PROCESS</p><h1>Research queue</h1><p>Keep practical tasks adjacent to the literature, evidence, and experiments they support.</p></div><button class="rx-button rx-button-primary" type="button" data-new="task">+ Add task</button></div>
+          <div id="rx-tasks" class="rx-list"></div>
+        </section>
+        <section class="rx-screen" data-screen="system" hidden>
+          <div class="rx-page-heading"><div><p class="rx-eyebrow">INFRASTRUCTURE / HEALTH</p><h1>Systems & storage</h1><p>Real local storage counters and live model provider checks, without imaginary GPU benchmarks.</p></div><button class="rx-button rx-button-soft" type="button" id="rx-refresh-system">↻ Refresh</button></div>
+          <div id="rx-system" class="rx-system-grid"><p class="rx-empty">Checking services...</p></div>
+        </section>
+      </main>
+      <footer class="rx-footer"><span>RESEARCH OS / LOCAL-FIRST</span><span id="rx-footer-status">Connecting to the local research vault...</span><span>NO SUBSCRIPTION REQUIRED</span></footer>
+    </div>
+  </div>
+  <input id="rx-vault-file" type="file" accept=".pdf,.md,.txt" multiple hidden aria-label="Choose source documents">
+  <dialog id="rx-editor" class="rx-dialog" aria-labelledby="rx-editor-title">
+    <form id="rx-editor-form">
+      <div class="rx-dialog-head"><span class="rx-eyebrow">PAREXA / RECORD EDITOR</span><button id="rx-dialog-close" type="button" aria-label="Close editor">×</button></div>
+      <h2 id="rx-editor-title">Create research record</h2><p id="rx-editor-description" class="rx-dialog-description"></p>
+      <div id="rx-editor-fields"></div>
+      <div class="rx-dialog-actions"><button type="button" id="rx-editor-cancel" class="rx-button rx-button-soft">Cancel</button><button type="submit" class="rx-button rx-button-primary" id="rx-editor-save">Save record</button></div>
+    </form>
+  </dialog>
+  <div id="rx-toast" class="rx-toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>
