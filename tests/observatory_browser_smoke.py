@@ -161,7 +161,7 @@ def main():
             page.locator("#ob-model-button").click()
             assert page.locator("#ob-inspector").is_visible()
             page.locator("#ob-chat-model-select").select_option("-1")
-            assert page.locator("#studio-model-state").inner_text() == "No model connected"
+            page.wait_for_function("document.querySelector('#studio-model-state')?.textContent === 'No model connected'", timeout=10000)
             page.locator("#ob-chat-model-select").select_option("0")
             page.locator("#ob-inspector-close").click()
             page.locator("#sidebar-settings-btn").click()
