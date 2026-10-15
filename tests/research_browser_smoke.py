@@ -95,7 +95,7 @@ def main():
                     page.locator('.rx-nav-item[data-view="notes"]').click()
                     page.locator('[data-new="note"]').click()
                     page.get_by_label("Note title").fill("Review of flight controllers")
-                    page.get_by_label("Research note").fill("Compare numerical simulations to the real prototype.")
+                    page.locator('#rx-editor textarea[name="content"]').fill("Compare numerical simulations to the real prototype.")
                     page.get_by_role("button",name="Save record").click()
                     expect(page.locator("#rx-notes")).to_contain_text("Review of flight controllers")
                     page.reload(wait_until="networkidle")
