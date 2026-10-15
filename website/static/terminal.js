@@ -89,7 +89,14 @@
   },true);
   dialog.addEventListener('close',() => {
     trigger.setAttribute('aria-expanded','false');
-    if (restoreFocus) returnFocus?.focus();
+    if (restoreFocus) {
+      // The previous control may have become hidden while the command dialog was open.
+      // Do not strand keyboard focus inside a closed modal.
+      const visible = returnFocus?.isConnected &&
+        returnFocus.getClientRects().length > 0 &&
+        !returnFocus.closest('[hidden], [inert]');
+      (visible ? returnFocus : byId('user-input'))?.focus();
+    }
   });
   dialog.addEventListener('click',event => {
     if (event.target !== dialog) return;
