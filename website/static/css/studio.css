@@ -336,3 +336,17 @@ body *::-webkit-scrollbar-corner { background:var(--scroll-track); }
   body,body :is(button,a[href],select,summary,label[for],[role="button"],[role="tab"],
   input[type="checkbox"],input[type="radio"],.chat-folder-move,.attach-btn) { cursor:auto; }
 }
+
+
+/* Research OS bridge: preserve the Observatory chat experience and its shortcuts. */
+.px-research-entry { display:flex; align-items:center; gap:10px; padding:11px 10px; text-decoration:none;
+  color:var(--ob-ink); border:1px solid var(--ob-line); border-radius:9px; background:var(--ob-surface-soft);
+  min-height:57px; }
+.px-research-entry:hover { color:var(--ob-accent); background:var(--ob-hover); border-color:var(--ob-accent); }
+.px-research-glyph { display:grid; place-items:center; width:30px; height:30px; flex:none;
+  border-radius:8px; background:#e0f3f0; color:#13817d; font-size:21px; }
+:root[data-theme="dark"] .px-research-glyph { background:#1c494b; color:#a1f4e9; }
+.px-research-entry strong { display:block; font-size:12px; }
+.px-research-entry small { display:block; font-size:10px; margin-top:4px; color:var(--ob-muted); white-space:nowrap; }
+.px-research-arrow { margin-left:auto; color:var(--ob-muted); font-size:14px; }
+.sidebar-top { gap:14px; }

@@ -61,6 +61,9 @@ else:
     )
 
 
+from parexa_interface.research_api import bp as research_blueprint, store as research_store
+
+
 app = Flask(
     __name__,
     static_folder=str(settings.website_dir / "static"),
@@ -70,6 +73,7 @@ app = Flask(
 logger = logging.getLogger(__name__)
 # No per-user authentication currently exists. Keep the HTTP server on loopback.
 app.config["MAX_CONTENT_LENGTH"] = settings.max_upload_mb * 1024 * 1024
+app.register_blueprint(research_blueprint)
 _ALLOWED_UPLOAD_EXTENSIONS = {".txt", ".pdf", ".md"}
 
 
@@ -90,6 +94,11 @@ def chat_models() -> Any:
 @app.route("/", methods=["GET"])
 def index() -> str:
     return render_template("index.html")
+
+
+@app.route("/research", methods=["GET"])
+def research_home() -> str:
+    return render_template("research.html")
 
 
 @app.route("/api/chat", methods=["POST"])
@@ -150,6 +159,13 @@ async def upload_file() -> Any:
 
     try:
         file.save(str(file_path))
+        # Preserve source bytes independently of embedding/index availability.
+        with file_path.open("rb") as original:
+            research_store.archive_stream(
+                original, filename=safe_name, document_id=file_id,
+                project_id=request.form.get("project_id") or None,
+                source="chat", max_bytes=settings.max_upload_mb * 1024 * 1024,
+            )
         update_upload_progress(
             upload_tracking_id,
             stage="saving",
@@ -272,6 +288,7 @@ async def upload_file() -> Any:
                     )
                 }
             ), 422
+        research_store.mark_indexed(file_id, nodes_created)
         if isinstance(ingestion_stats, dict):
             ingestion_stats["nodes_created"] = nodes_created
 

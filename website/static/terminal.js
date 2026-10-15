@@ -14,6 +14,7 @@
   };
   const commands = [
     { name:'New conversation', hint:'Alt N', run:() => click('.new-chat-btn') },
+    { name:'Open Research OS', hint:'Projects / Vault / Lab', run:() => window.location.assign('/research') },
     { name:'Focus composer', hint:'/', run:() => byId('user-input')?.focus() },
     { name:'Choose model', hint:'Runtime', run:() => byId('ob-model-button')?.click() },
     { name:'Open sources', hint:'Research', run:() => click('[data-ob-action="sources"]') },
@@ -74,7 +75,16 @@
   });
   byId('px-command-close')?.addEventListener('click',() => dialog.close());
   document.addEventListener('keydown',event => {
-    if (dialog.open && event.key === 'Escape') { event.stopPropagation(); return; }
+    if (dialog.open && event.key === 'Escape') {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      restoreFocus = false;
+      dialog.close();
+      // Escape is a deliberate return to the chat workstation, not the hidden
+      // search field or a previously closed inspector control.
+      byId('user-input')?.focus();
+      return;
+    }
     if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'k') return;
     if (['modal-overlay','settings-drawer','activity-drawer'].some(id => byId(id) && !byId(id).hidden)) return;
     event.preventDefault();
@@ -83,7 +93,14 @@
   },true);
   dialog.addEventListener('close',() => {
     trigger.setAttribute('aria-expanded','false');
-    if (restoreFocus) returnFocus?.focus();
+    if (restoreFocus) {
+      // The previous control may have become hidden while the command dialog was open.
+      // Do not strand keyboard focus inside a closed modal.
+      const visible = returnFocus?.isConnected &&
+        returnFocus.getClientRects().length > 0 &&
+        !returnFocus.closest('[hidden], [inert]');
+      (visible ? returnFocus : byId('user-input'))?.focus();
+    }
   });
   dialog.addEventListener('click',event => {
     if (event.target !== dialog) return;
