@@ -75,7 +75,12 @@
   });
   byId('px-command-close')?.addEventListener('click',() => dialog.close());
   document.addEventListener('keydown',event => {
-    if (dialog.open && event.key === 'Escape') { event.stopPropagation(); return; }
+    if (dialog.open && event.key === 'Escape') {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      dialog.close();
+      return;
+    }
     if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'k') return;
     if (['modal-overlay','settings-drawer','activity-drawer'].some(id => byId(id) && !byId(id).hidden)) return;
     event.preventDefault();
