@@ -1,6 +1,6 @@
-# Parexa Observatory
+# Parexa Research OS & Observatory
 
-> **Local-first AI research workspace** for document reading, source-aware answers, conversations and optional Genesis multi-agent review.
+> **Local-first research operating system** for project workspaces, original-source preservation, notebooks, hypotheses, evidence tracking, document reading, source-aware answers and optional Genesis multi-agent review.
 
 Parexa is a Flask + vanilla JavaScript application. It provides **model routing**, not a newly trained language model. The latest runtime supports **LM Studio, Ollama, and the original Cerebras integration** for chat. Embeddings and web-grounded browsing are configured separately.
 
@@ -18,11 +18,19 @@ uv run python main.py
 
 Windows PowerShell: `Copy-Item .env.example .env` instead of `cp`.
 
-Open **http://127.0.0.1:5000**. Select a loaded LM Studio model in the **Models** selector in the header or composer. The model list is obtained from the configured local `/v1/models` endpoint. If no model is found, start the server and load a model, then refresh.
+Open **http://127.0.0.1:5000/research** for the new research workstation, or **http://127.0.0.1:5000** for the existing AI chat. Select a loaded LM Studio model in the chat **Models** selector in the header or composer. The model list is obtained from the configured local `/v1/models` endpoint. If no model is found, start the server and load a model, then refresh.
 
 **Ollama alternative:** start Ollama, pull a chat model, set `CHAT_PROVIDER=ollama` in `.env`, and select the model through the UI.
 
 No cloud API keys are needed for **text chat** with a locally running chat model. Document RAG additionally requires the separately configured **embedding model**, even when chat is local.
+
+## Research OS workspace (new)
+
+The **Research OS** runs at `/research` and has eight working workspaces: Observatory overview, Projects, Source Vault, Experiments, Evidence Ledger, Notebook, Research Queue, and Systems & Storage. Research projects, notes, tasks, experiments, evidence, and SHA-256 source metadata persist in a local SQLite database, separate from the Qdrant vector index. PDF/TXT/Markdown originals are stored byte-for-byte using content-addressed deduplication and are downloadable and integrity-checkable. Storage-only vault uploads work without running a local LLM or embedding model; existing chat uploads are archived before RAG parsing and marked indexed after successful ingestion.
+
+**Important distinction:** archiving a file in the vault does not index it for chat search. For now, reattach archived files through the chat uploader to run existing RAG. The original Observatory scratchpad still uses browser localStorage; the new **Notebook** persists its notes server-side. Evidence quotations and confidence labels are written by the researcher, not automatically citation-verified.
+
+See [Research OS architecture, API and limitations](docs/RESEARCH_OS.md).
 
 ## What Parexa supports
 
@@ -33,9 +41,9 @@ No cloud API keys are needed for **text chat** with a locally running chat model
 - Selected-file RAG now returns an explicit error if retrieval fails instead of silently answering without evidence.
 - Persistent conversation records and compact summaries.
 - Optional Genesis multi-agent: draft, critics and synthesis, all using the selected chat provider.
-- Parexa Observatory UI with source inspector and a **browser-only** scratchpad.
+- Parexa Observatory chat UI with source inspector and a **browser-only** scratchpad, plus the separate persistent Research OS notebook.
 
-**Not implemented:** training a new Parexa foundation model, PDF page preview, semantic long-term memory, streaming tokens to the browser, real GPU telemetry, or measured autonomous task routing.
+**Not implemented:** training a new Parexa foundation model, PDF page preview, auto-indexing sources uploaded only to the vault, source-span citation verification, full workspace backup, semantic long-term memory, streaming tokens to the browser, real GPU telemetry, or measured autonomous task routing.
 
 ## Model configuration
 
@@ -57,14 +65,14 @@ The new `.env.example` is local-first. Existing `.env` files without `CHAT_PROVI
 
 Cloud selection does **not** occur automatically after local failure. Web browsing is an explicit cloud-grounding path when enabled and configured; it is not part of purely local chat.
 
-See [the model runtime guide](docs/MODEL_RUNTIME.md) for privacy boundaries, troubleshooting and benchmarks, and [the Observatory UI guide](docs/OBSERVATORY_UI.md) for UI features.
+See [the Research OS guide](docs/RESEARCH_OS.md) for persistent storage and researcher workflows, [the model runtime guide](docs/MODEL_RUNTIME.md) for privacy boundaries, troubleshooting and benchmarks, and [the Observatory UI guide](docs/OBSERVATORY_UI.md) for legacy chat UI features.
 
 ## Safety and storage
 
 - The HTTP server binds to `127.0.0.1` by default because it currently has **no authentication**. Do not expose it on an untrusted network.
 - Local model server URLs default to loopback only; remote use must be deliberately enabled and use HTTPS.
 - When an embedding model's dimensionality differs from an existing Qdrant collection, Parexa rejects indexing rather than deleting vectors. **Reindexing is a deliberate future migration operation, not automatic.**
-- Original uploaded PDFs are not retained as a full source archive. Current evidence metadata records file name and page, not a byte-replayable original document.
+- New uploads retain original PDF/TXT/Markdown source bytes in the SHA-256 Research Vault. Pre-existing uploads from older versions cannot be retroactively recovered from vector metadata alone. The manual evidence ledger has source IDs and user-provided excerpts, not validated PDF coordinate spans.
 - A local application does not guarantee fully offline behavior if cloud embeddings, Cerebras, or Google browsing are configured.
 
 ## Tests
@@ -73,6 +81,8 @@ See [the model runtime guide](docs/MODEL_RUNTIME.md) for privacy boundaries, tro
 python -m unittest discover -s tests -p 'test_model_gateway.py' -v
 python -m unittest discover -s tests -p 'test_local_chat_llm.py' -v
 node --check website/static/model_selector.js
+python -m unittest discover -s tests -p 'test_research_*.py' -v
+node --check website/static/research-os.js
 ```
 
 GitHub Actions run pure-stdlib routing tests and a real HTTP integration using a fake local OpenAI-compatible model server; another workflow tests the Observatory interface in Chromium. These tests do **not** measure a real model's answer quality or performance.
